@@ -1,7 +1,13 @@
 # Changelog
 
-## [6.1.5] - Unreleased
+## [6.2.0] - 2026-09-19
 
+- Auto-restart VPN service on unexpected kill (power, time and locale broadcasts)
+- Auto-restart VPN service when reopening the application after a force stop
+- Restart VPN tunnel when the VPN service is revoked
+- Keep start/stop button status in sync with the running VPN service
+- Add battery optimization exemption (ignore battery optimization) preference
+- Add keep-running prompt with battery optimization request on home screen
 - Add always-on VPN detection during setup
 - Improve web signal handling and OOM killer
 - Update mongoose web server

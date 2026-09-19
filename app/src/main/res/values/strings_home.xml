@@ -43,4 +43,10 @@
     <!-- Error dialog -->
     <string name="error_dialog_help">Please read Help for more information.</string>
 
+    <!-- Battery optimization dialog -->
+    <string name="battery_optimization_dialog_title">Keep AdAway running</string>
+    <string name="battery_optimization_dialog_message">Your system may pause AdAway in the background to save battery. While paused, DNS requests are not handled and the internet may appear to be offline.\n\nTap "Request" to allow AdAway to run without battery optimization.</string>
+    <string name="battery_optimization_dialog_positive">Request</string>
+    <string name="battery_optimization_dialog_negative">Remind me later</string>
+
 </resources>

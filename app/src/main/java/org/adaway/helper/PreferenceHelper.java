@@ -274,6 +274,27 @@ public final class PreferenceHelper {
         );
     }
 
+    public static long getVpnBatteryOptimizationPromptTimestamp(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(
+                Constants.PREFS_NAME,
+                Context.MODE_PRIVATE
+        );
+        return prefs.getLong(
+                context.getString(R.string.pref_vpn_battery_optimization_prompted_key),
+                0L
+        );
+    }
+
+    public static void setVpnBatteryOptimizationPromptTimestamp(Context context, long timestamp) {
+        SharedPreferences prefs = context.getApplicationContext().getSharedPreferences(
+                Constants.PREFS_NAME,
+                Context.MODE_PRIVATE
+        );
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putLong(context.getString(R.string.pref_vpn_battery_optimization_prompted_key), timestamp);
+        editor.apply();
+    }
+
     public static boolean getDebugEnabled(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(
                 Constants.PREFS_NAME,

@@ -5,6 +5,11 @@
     <string name="pref_vpn_service_on_boot">Enable at startup</string>
     <string name="pref_vpn_service_monitor">Monitor connection</string>
     <string name="pref_vpn_service_monitor_description">Periodically check the network state to restart VPN on disconnection.</string>
+    <!-- Battery optimization -->
+    <string name="pref_vpn_battery_optimization">Ignore battery optimization</string>
+    <string name="pref_vpn_battery_optimization_summary_exempt">Exempted from battery optimization, the VPN tunnel should stay alive.</string>
+    <string name="pref_vpn_battery_optimization_summary_request">AdAway may be paused by the system. Tap to request the exemption so the VPN tunnel stays alive.</string>
+    <string name="pref_vpn_battery_optimization_already_exempt">AdAway is already exempted from battery optimization.</string>
     <!-- Excluded applications -->
     <string name="pref_vpn_excluded_apps">Excluded applications</string>
     <string name="pref_vpn_excluded_apps_description">Configure which applications should not use the VPN so no connections will be blocked.</string>

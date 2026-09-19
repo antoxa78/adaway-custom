@@ -50,6 +50,8 @@
     <bool name="pref_vpn_service_on_boot_def">true</bool>
     <string name="pref_vpn_watchdog_enabled_key" translatable="false">vpnWatchdog</string>
     <bool name="pref_vpn_watchdog_enabled_def">false</bool>
+    <string name="pref_vpn_battery_optimization_key" translatable="false">vpnBatteryOptimization</string>
+    <string name="pref_vpn_battery_optimization_prompted_key" translatable="false">vpnBatteryOptimizationPrompted</string>
     <string name="pref_enable_debug_key" translatable="false">debugEnabled</string>
     <bool name="pref_enable_debug_def">false</bool>
     <string name="pref_enable_telemetry_key" translatable="false">enableTelemetry</string>

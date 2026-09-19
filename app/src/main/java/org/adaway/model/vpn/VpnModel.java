@@ -3,8 +3,13 @@ package org.adaway.model.vpn;
 import static org.adaway.model.adblocking.AdBlockMethod.VPN;
 import static org.adaway.model.error.HostError.ENABLE_VPN_FAIL;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.util.LruCache;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import org.adaway.R;
 import org.adaway.db.AppDatabase;
@@ -13,7 +18,9 @@ import org.adaway.db.entity.HostEntry;
 import org.adaway.model.adblocking.AdBlockMethod;
 import org.adaway.model.adblocking.AdBlockModel;
 import org.adaway.model.error.HostErrorException;
+import org.adaway.vpn.VpnService;
 import org.adaway.vpn.VpnServiceControls;
+import org.adaway.vpn.VpnStatus;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -30,6 +37,7 @@ public class VpnModel extends AdBlockModel {
     private final HostEntryDao hostEntryDao;
     private final LruCache<String, HostEntry> blockCache;
     private final LinkedHashSet<String> logs;
+    private final BroadcastReceiver vpnStatusReceiver;
     private boolean recordingLogs;
     private int requestCount;
 
@@ -52,6 +60,24 @@ public class VpnModel extends AdBlockModel {
         this.recordingLogs = false;
         this.requestCount = 0;
         this.applied.postValue(VpnServiceControls.isRunning(context));
+        // Register VPN status receiver to update the applied status according to the VPN service status
+        this.vpnStatusReceiver = createVpnStatusReceiver();
+        LocalBroadcastManager.getInstance(context).registerReceiver(
+                this.vpnStatusReceiver,
+                new IntentFilter(VpnService.VPN_UPDATE_STATUS_INTENT)
+        );
+    }
+
+    private BroadcastReceiver createVpnStatusReceiver() {
+        return new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                int statusCode = intent.getIntExtra(VpnService.VPN_UPDATE_STATUS_EXTRA, VpnStatus.STOPPED.toCode());
+                VpnStatus vpnStatus = VpnStatus.fromCode(statusCode);
+                Timber.d("VPN status update: %s.", vpnStatus);
+                VpnModel.this.applied.postValue(vpnStatus.isStarted());
+            }
+        };
     }
 
     @Override

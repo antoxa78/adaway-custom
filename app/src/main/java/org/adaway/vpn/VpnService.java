@@ -20,8 +20,11 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE;
 import static android.net.NetworkCapabilities.TRANSPORT_CELLULAR;
 import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
+import static android.os.Build.VERSION.SDK_INT;
+import static android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
 import static org.adaway.broadcast.Command.START;
 import static org.adaway.broadcast.Command.STOP;
 import static org.adaway.broadcast.CommandReceiver.SEND_COMMAND_ACTION;
@@ -149,6 +152,23 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         Timber.d("Destroyed VPN service.");
     }
 
+    @Override
+    public void onRevoke() {
+        Timber.w("VPN service revoked.");
+        // Stop the current tunnel
+        this.vpnWorker.stop();
+        // If the application is still the prepared VPN owner, restart the tunnel right away
+        Intent prepareIntent = VpnService.prepare(this);
+        if (prepareIntent == null) {
+            Timber.i("Restarting revoked VPN service…");
+            startVpn();
+        } else {
+            Timber.w("VPN preparation revoked, waiting for user to re-authorize.");
+            PreferenceHelper.setVpnServiceStatus(this, STOPPED);
+            updateVpnStatus(STOPPED);
+        }
+    }
+
     /*
      * Handler callback.
      */
@@ -206,7 +226,11 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
             case STARTING:
             case RUNNING:
                 notificationManager.cancel(VPN_RESUME_SERVICE_NOTIFICATION_ID);
-                startForeground(VPN_RUNNING_SERVICE_NOTIFICATION_ID, notification);
+                if (SDK_INT >= UPSIDE_DOWN_CAKE) {
+                    startForeground(VPN_RUNNING_SERVICE_NOTIFICATION_ID, notification, FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+                } else {
+                    startForeground(VPN_RUNNING_SERVICE_NOTIFICATION_ID, notification);
+                }
                 break;
             default:
                 if (checkSelfPermission(POST_NOTIFICATIONS) == PERMISSION_GRANTED) {
@@ -214,10 +238,8 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
                 }
         }
 
-        // TODO BUG - Nobody is listening to this intent
-        // TODO BUG - VpnModel can lister to it to update the MainActivity according its current state
         Intent intent = new Intent(VPN_UPDATE_STATUS_INTENT);
-        intent.putExtra(VPN_UPDATE_STATUS_EXTRA, status);
+        intent.putExtra(VPN_UPDATE_STATUS_EXTRA, status.toCode());
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 

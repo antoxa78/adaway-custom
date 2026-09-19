@@ -18,6 +18,8 @@ import android.graphics.Typeface;
 import android.net.Uri;
 import android.net.VpnService;
 import android.os.Bundle;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
@@ -50,6 +52,9 @@ import org.adaway.ui.prefs.PrefsActivity;
 import org.adaway.ui.support.SupportActivity;
 import org.adaway.ui.update.UpdateActivity;
 import org.adaway.ui.welcome.WelcomeActivity;
+import org.adaway.vpn.VpnServiceControls;
+
+import java.util.concurrent.TimeUnit;
 
 import kotlin.jvm.functions.Function1;
 import timber.log.Timber;
@@ -64,6 +69,10 @@ public class HomeActivity extends AppCompatActivity {
      * The project link.
      */
     private static final String PROJECT_LINK = "https://github.com/AdAway/AdAway";
+    /**
+     * The delay between two battery optimization prompts.
+     */
+    private static final long BATTERY_OPTIMIZATION_PROMPT_DELAY_MS = TimeUnit.DAYS.toMillis(7);
 
     private HomeActivityBinding binding;
     private BottomSheetBehavior<View> drawerBehavior;
@@ -102,7 +111,10 @@ public class HomeActivity extends AppCompatActivity {
         });
 
         this.prepareVpnLauncher = registerForActivityResult(new StartActivityForResult(), result -> {
-
+            // Restart the VPN if it was authorized by the user
+            if (result.getResultCode() == RESULT_OK) {
+                checkVpnRestart();
+            }
         });
 
         if (savedInstanceState == null) {
@@ -114,6 +126,8 @@ public class HomeActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         checkFirstStep();
+        checkVpnRestart();
+        checkBatteryOptimization();
     }
 
     @Override
@@ -132,6 +146,56 @@ public class HomeActivity extends AppCompatActivity {
             // Prepare VPN
             this.prepareVpnLauncher.launch(prepareIntent);
         }
+    }
+
+    private void checkVpnRestart() {
+        // Only restart when VPN ad blocking is supposed to be running
+        if (PreferenceHelper.getAdBlockMethod(this) != VPN) {
+            return;
+        }
+        // Ensure the application is still the prepared VPN owner
+        if (VpnService.prepare(this) != null) {
+            return;
+        }
+        boolean shouldRun = VpnServiceControls.isStarted(this);
+        boolean running = VpnServiceControls.isRunning(this);
+        if (shouldRun && !running) {
+            Timber.i("Restarting killed VPN service…");
+            VpnServiceControls.start(this);
+        }
+    }
+
+    private void checkBatteryOptimization() {
+        // Only prompt while VPN ad blocking is running
+        if (PreferenceHelper.getAdBlockMethod(this) != VPN || !VpnServiceControls.isRunning(this)) {
+            return;
+        }
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        if (powerManager.isIgnoringBatteryOptimizations(getPackageName())) {
+            return;
+        }
+        // Throttle the prompt to avoid nagging
+        long now = System.currentTimeMillis();
+        long lastPrompt = PreferenceHelper.getVpnBatteryOptimizationPromptTimestamp(this);
+        if (lastPrompt != 0 && now - lastPrompt < BATTERY_OPTIMIZATION_PROMPT_DELAY_MS) {
+            return;
+        }
+        PreferenceHelper.setVpnBatteryOptimizationPromptTimestamp(this, now);
+        showBatteryOptimizationDialog();
+    }
+
+    private void showBatteryOptimizationDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.battery_optimization_dialog_title)
+                .setMessage(R.string.battery_optimization_dialog_message)
+                .setPositiveButton(R.string.battery_optimization_dialog_positive, (dialog, which) -> {
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                            .setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                })
+                .setNegativeButton(R.string.battery_optimization_dialog_negative, (dialog, which) -> dialog.dismiss())
+                .create()
+                .show();
     }
 
     private void checkUpdateAtStartup() {
