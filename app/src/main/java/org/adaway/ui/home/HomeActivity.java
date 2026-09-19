@@ -68,7 +68,7 @@ public class HomeActivity extends AppCompatActivity {
     /**
      * The project link.
      */
-    private static final String PROJECT_LINK = "https://github.com/AdAway/AdAway";
+    private static final String PROJECT_LINK = "https://github.com/antoxa78/adaway-custom";
     /**
      * The delay between two battery optimization prompts.
      */
