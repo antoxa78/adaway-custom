@@ -8,7 +8,7 @@
     <color name="drawer_icon">#B71C1C</color>
     <!-- Host list state -->
     <color name="blocked">#FF5252</color>
-    <color name="allowed">#64FFDA</color>
+    <color name="allowed">#00BFA5</color>
     <color name="redirected">#536DFE</color>
     <!-- Common UI elements -->
     <color name="selected_background">#78b71c1c</color>

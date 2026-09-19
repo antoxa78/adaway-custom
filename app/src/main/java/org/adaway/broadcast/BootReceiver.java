@@ -51,10 +51,11 @@ public class BootReceiver extends BroadcastReceiver {
                 WebServerUtils.startWebServer(context);
             }
             if (adBlockMethod == VPN && PreferenceHelper.getVpnServiceOnBoot(context)) {
-                // Ensure VPN is prepared
-                Intent prepareIntent = android.net.VpnService.prepare(context);
-                if (prepareIntent != null) {
-                    context.startActivity(prepareIntent);
+                // Ensure VPN is prepared. The authorization dialog cannot be shown from a receiver
+                // (no activity context, background start restrictions), so skip until the user reopens the app.
+                if (android.net.VpnService.prepare(context) != null) {
+                    Timber.w("VPN authorization missing, cannot start VPN service on boot.");
+                    return;
                 }
                 // Start VPN service if enabled in preferences
                 VpnServiceControls.start(context);

@@ -34,8 +34,8 @@ import timber.log.Timber;
  * @author Bruce BUJON (bruce.bujon(at)gmail(dot)com)
  */
 public class UpdateModel {
-    private static final String MANIFEST_URL = "https://app.adaway.org/manifest.json";
-    private static final String DOWNLOAD_URL = "https://app.adaway.org/adaway.apk?versionCode=";
+    private static final String MANIFEST_URL = "https://api.github.com/repos/antoxa78/adaway-custom/releases/latest";
+    private static final String DOWNLOAD_URL = MANIFEST_URL;
     private final Context context;
     private final VersionInfo versionInfo;
     private final OkHttpClient client;
@@ -169,7 +169,7 @@ public class UpdateModel {
 
     private long download(Manifest manifest) {
         Timber.i("Downloading " + manifest.version + ".");
-        Uri uri = Uri.parse(DOWNLOAD_URL + manifest.versionCode);
+        Uri uri = Uri.parse(manifest.downloadUrl);
         DownloadManager.Request request = new DownloadManager.Request(uri)
                 .setTitle("AdAway " + manifest.version)
                 .setDescription(this.context.getString(R.string.update_notification_description));
