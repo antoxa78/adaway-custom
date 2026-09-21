@@ -216,6 +216,9 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
 
     private void reconnect() {
         updateVpnStatus(RECONNECTING);
+        // Stop the previous worker before starting a new one so two tunnels do not fight
+        // over the VPN interface when the network changes.
+        this.vpnWorker.stop();
         this.vpnWorker.start();
     }
 

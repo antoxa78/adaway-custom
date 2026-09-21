@@ -1,5 +1,9 @@
 # Changelog
 
+## [6.2.4] - 2026-09-21
+
+- Fix VPN not restarting after switching between Wi-Fi and mobile data
+
 ## [6.2.0] - 2026-09-19
 
 - Auto-restart VPN service on unexpected kill (power, time and locale broadcasts)

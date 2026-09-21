@@ -47,6 +47,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -91,6 +92,11 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
      */
     private final AtomicReference<ExecutorService> executor;
     /**
+     * The generation counter incremented each time the worker is started.
+     * It allows a superseded worker thread to detect it has been replaced.
+     */
+    private final AtomicInteger generation;
+    /**
      * The VPN network interface, (<code>null</code> if not established).
      */
     private final AtomicReference<ParcelFileDescriptor> vpnNetworkInterface;
@@ -110,6 +116,7 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
         this.connectionMonitor = new VpnConnectionMonitor(this.vpnService);
         this.vpnWatchDog = new VpnWatchdog();
         this.executor = new AtomicReference<>(null);
+        this.generation = new AtomicInteger(0);
         this.vpnNetworkInterface = new AtomicReference<>(null);
     }
 
@@ -119,6 +126,7 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
      */
     public void start() {
         Timber.d("Starting VPN thread…");
+        this.generation.incrementAndGet();
         ExecutorService executor = Executors.newFixedThreadPool(2);
         executor.submit(this::work);
         executor.submit(this.connectionMonitor::monitor);
@@ -168,6 +176,7 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
 
     private void work() {
         Timber.d("Starting work…");
+        int currentGeneration = this.generation.get();
         // Initialize context
         this.dnsPacketProxy.initialize(this.vpnService);
         // Initialize the watchdog
@@ -179,7 +188,9 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
                 this.vpnService.notifyVpnStatus(STARTING);
                 runVpn();
                 Timber.i("Told to stop");
-                this.vpnService.notifyVpnStatus(STOPPING);
+                if (currentGeneration == this.generation.get()) {
+                    this.vpnService.notifyVpnStatus(STOPPING);
+                }
                 break;
             } catch (InterruptedException e) {
                 Timber.d(e, "Failed to wait for connexion throttling.");
@@ -187,11 +198,18 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
                 break;
             } catch (VpnNetworkException | IOException e) {
                 Timber.w(e, "Network exception in vpn thread, reconnecting…");
+                // If the worker was replaced, do not reconnect nor report a stale status.
+                if (currentGeneration != this.generation.get()) {
+                    Timber.i("VPN worker was replaced, stopping.");
+                    break;
+                }
                 // If an exception was thrown, notify status and try again
                 this.vpnService.notifyVpnStatus(RECONNECTING_NETWORK_ERROR);
             }
         }
-        this.vpnService.notifyVpnStatus(STOPPED);
+        if (currentGeneration == this.generation.get()) {
+            this.vpnService.notifyVpnStatus(STOPPED);
+        }
         Timber.d("Exiting work.");
     }
 
