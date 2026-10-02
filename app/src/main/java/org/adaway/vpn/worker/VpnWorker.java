@@ -260,8 +260,8 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
         try {
             Timber.d("doOne: Polling %d file descriptors.", polls.length);
             int numberOfEvents = Os.poll(polls, this.vpnWatchDog.getPollTimeout());
-            // TODO BUG - There is a bug where the watchdog keeps doing timeout if there is no network activity
-            // TODO BUG - 0 Might be a valid value if no current DNS query and everything was already sent back to device
+            // A poll timeout while the tunnel is idle is expected and handled by the watchdog,
+            // which no longer treats an unanswered probe as a fatal error.
             if (numberOfEvents == 0) {
                 this.vpnWatchDog.handleTimeout();
                 return true;

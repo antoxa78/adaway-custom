@@ -66,8 +66,8 @@ import org.adaway.ui.home.HomeActivity;
 import org.adaway.vpn.worker.VpnWorker;
 
 import java.lang.ref.WeakReference;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import timber.log.Timber;
 
@@ -100,7 +100,7 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
     private final MyHandler handler;
     private final NetworkTypeCallback wifiNetworkCallback;
     private final NetworkTypeCallback cellularNetworkCallback;
-    private final Set<NetworkType> availableNetworkTypes;
+    private final Map<NetworkType, Integer> availableNetworkTypes;
     private final VpnWorker vpnWorker;
 
     /**
@@ -110,7 +110,7 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         this.handler = new MyHandler(this);
         this.wifiNetworkCallback = new NetworkTypeCallback(WIFI);
         this.cellularNetworkCallback = new NetworkTypeCallback(CELLULAR);
-        this.availableNetworkTypes = new HashSet<>();
+        this.availableNetworkTypes = new HashMap<>();
         this.vpnWorker = new VpnWorker(this);
     }
 
@@ -314,10 +314,10 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
             NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
             if (networkCapabilities != null) {
                 if (networkCapabilities.hasTransport(TRANSPORT_WIFI)) {
-                    this.availableNetworkTypes.add(WIFI);
+                    this.availableNetworkTypes.put(WIFI, 1);
                 }
                 if (networkCapabilities.hasTransport(TRANSPORT_CELLULAR)) {
-                    this.availableNetworkTypes.add(CELLULAR);
+                    this.availableNetworkTypes.put(CELLULAR, 1);
                 }
             }
         }
@@ -326,7 +326,7 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
 
     private void addNetworkType(NetworkType type) {
         boolean noNetwork = this.availableNetworkTypes.isEmpty();
-        this.availableNetworkTypes.add(type);
+        this.availableNetworkTypes.merge(type, 1, Integer::sum);
         if (noNetwork) {
             Timber.d("Reconnecting VPN on network %s.", type);
             reconnect();
@@ -334,12 +334,20 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
     }
 
     private void removeNetworkType(NetworkType type) {
+        // Only act when the LAST network of ANY type is gone: losing one network while another
+        // remains (dual-band Wi-Fi links, or a cellular blip while Wi-Fi is the actual carrier)
+        // must not stop or restart the VPN. If the real carrier actually changed, the worker
+        // self-heals by reconnecting on the first failed DNS forward (ENETUNREACH) and re-maps
+        // the DNS servers with {@link DnsServerMapper}.
+        int count = this.availableNetworkTypes.getOrDefault(type, 0);
+        if (count > 1) {
+            this.availableNetworkTypes.put(type, count - 1);
+            return;
+        }
         this.availableNetworkTypes.remove(type);
         if (this.availableNetworkTypes.isEmpty()) {
             Timber.d("Waiting for network…");
             waitForNetVpn();
-        } else {
-            reconnect();
         }
     }
 
