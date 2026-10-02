@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.2.5] - 2026-10-02
+
+- Stop the VPN from restarting when a non-carrier network flaps (dual-band Wi-Fi links, cellular blips)
+- Stop idle watchdog false-timeouts from tearing the tunnel down while the device is quiet
+- Only stop the VPN when no network remains; real carrier changes recover on their own
+
 ## [6.2.4] - 2026-09-21
 
 - Fix VPN not restarting after switching between Wi-Fi and mobile data
