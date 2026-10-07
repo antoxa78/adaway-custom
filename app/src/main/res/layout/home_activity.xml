@@ -10,39 +10,20 @@
         android:id="@+id/content"
         layout="@layout/home_content" />
 
+    <!-- The bar only cradles the start/stop button and slides away while scrolling the content -->
     <com.google.android.material.bottomappbar.BottomAppBar
         android:id="@+id/bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        app:menu="@menu/next_actions"
-        app:navigationContentDescription="@string/open_drawer_button_description"
-        app:navigationIcon="@drawable/ic_menu_24dp" />
+        app:hideOnScroll="true" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:contentDescription="@string/adblock_pause_button_description"
+        android:contentDescription="@string/adblock_start_button_description"
         app:layout_anchor="@id/bar"
-        app:srcCompat="@drawable/ic_pause_24dp" />
-
-    <FrameLayout
-        android:id="@+id/bottom_drawer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:elevation="16dp"
-        app:behavior_hideable="true"
-        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
-
-        <!--app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"-->
-        <!--app:layout_behavior="@string/bottom_sheet_behavior"-->
-
-        <com.google.android.material.navigation.NavigationView
-            android:id="@+id/navigation_view"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:menu="@menu/home_drawer" />
-    </FrameLayout>
+        app:srcCompat="@drawable/ic_start_24dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

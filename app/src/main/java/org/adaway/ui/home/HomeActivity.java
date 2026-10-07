@@ -1,7 +1,5 @@
 package org.adaway.ui.home;
 
-import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HALF_EXPANDED;
-import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN;
 import static org.adaway.model.adblocking.AdBlockMethod.UNDEFINED;
 import static org.adaway.model.adblocking.AdBlockMethod.VPN;
 import static org.adaway.ui.Animations.removeView;
@@ -13,28 +11,20 @@ import static org.adaway.ui.lists.ListsActivity.TAB;
 
 import android.content.Intent;
 import android.content.res.Resources;
-import android.graphics.Color;
 import android.graphics.Typeface;
-import android.net.Uri;
 import android.net.VpnService;
 import android.os.Bundle;
-import android.os.PowerManager;
-import android.provider.Settings;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
-import androidx.annotation.IdRes;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.adaway.R;
@@ -47,13 +37,14 @@ import org.adaway.model.error.HostError;
 import org.adaway.ui.help.HelpActivity;
 import org.adaway.ui.hosts.HostsSourcesActivity;
 import org.adaway.ui.lists.ListsActivity;
-import org.adaway.ui.log.LogActivity;
 import org.adaway.ui.prefs.PrefsActivity;
-import org.adaway.ui.support.SupportActivity;
 import org.adaway.ui.update.UpdateActivity;
 import org.adaway.ui.welcome.WelcomeActivity;
+import org.adaway.util.AutostartUtils;
+import org.adaway.util.BatteryOptimizationUtils;
 import org.adaway.vpn.VpnServiceControls;
 
+import java.text.NumberFormat;
 import java.util.concurrent.TimeUnit;
 
 import kotlin.jvm.functions.Function1;
@@ -66,17 +57,11 @@ import timber.log.Timber;
  */
 public class HomeActivity extends AppCompatActivity {
     /**
-     * The project link.
-     */
-    private static final String PROJECT_LINK = "https://github.com/antoxa78/adaway-custom";
-    /**
      * The delay between two battery optimization prompts.
      */
     private static final long BATTERY_OPTIMIZATION_PROMPT_DELAY_MS = TimeUnit.DAYS.toMillis(7);
 
     private HomeActivityBinding binding;
-    private BottomSheetBehavior<View> drawerBehavior;
-    private OnBackPressedCallback onBackPressedCallback;
     private HomeViewModel homeViewModel;
     private ActivityResultLauncher<Intent> prepareVpnLauncher;
 
@@ -99,16 +84,10 @@ public class HomeActivity extends AppCompatActivity {
         bindSourceCounter();
         bindPending();
         bindState();
+        bindLastSourceUpdate();
         bindClickListeners();
-        setUpBottomDrawer();
+        bindDrawerButton();
         bindFab();
-
-        this.binding.navigationView.setNavigationItemSelectedListener(item -> {
-            if (showFragment(item.getItemId())) {
-                this.drawerBehavior.setState(STATE_HIDDEN);
-            }
-            return false; // TODO Handle selection
-        });
 
         this.prepareVpnLauncher = registerForActivityResult(new StartActivityForResult(), result -> {
             // Restart the VPN if it was authorized by the user
@@ -128,11 +107,7 @@ public class HomeActivity extends AppCompatActivity {
         checkFirstStep();
         checkVpnRestart();
         checkBatteryOptimization();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        return showFragment(item.getItemId());
+        checkStartupPermissions();
     }
 
     private void checkFirstStep() {
@@ -170,8 +145,7 @@ public class HomeActivity extends AppCompatActivity {
         if (PreferenceHelper.getAdBlockMethod(this) != VPN || !VpnServiceControls.isRunning(this)) {
             return;
         }
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        if (powerManager.isIgnoringBatteryOptimizations(getPackageName())) {
+        if (BatteryOptimizationUtils.isIgnoringBatteryOptimizations(this)) {
             return;
         }
         // Throttle the prompt to avoid nagging
@@ -188,12 +162,40 @@ public class HomeActivity extends AppCompatActivity {
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.battery_optimization_dialog_title)
                 .setMessage(R.string.battery_optimization_dialog_message)
-                .setPositiveButton(R.string.battery_optimization_dialog_positive, (dialog, which) -> {
-                    Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-                            .setData(Uri.parse("package:" + getPackageName()));
-                    startActivity(intent);
-                })
+                .setPositiveButton(R.string.battery_optimization_dialog_positive, (dialog, which) ->
+                        BatteryOptimizationUtils.requestIgnoreBatteryOptimizations(this))
                 .setNegativeButton(R.string.battery_optimization_dialog_negative, (dialog, which) -> dialog.dismiss())
+                .create()
+                .show();
+    }
+
+    private void checkStartupPermissions() {
+        // Only prompt once, after the initial setup
+        if (PreferenceHelper.isStartupPermissionPrompted(this)) {
+            return;
+        }
+        if (PreferenceHelper.getAdBlockMethod(this) == UNDEFINED) {
+            return;
+        }
+        PreferenceHelper.setStartupPermissionPrompted(this, true);
+        // Avoid the weekly battery optimization prompt right after this one
+        PreferenceHelper.setVpnBatteryOptimizationPromptTimestamp(this, System.currentTimeMillis());
+        showStartupPermissionDialog();
+    }
+
+    private void showStartupPermissionDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.startup_permission_dialog_title)
+                .setMessage(R.string.startup_permission_dialog_message)
+                .setPositiveButton(R.string.startup_permission_dialog_allow, (dialog, which) -> {
+                    // Allow AdAway to start at phone startup
+                    PreferenceHelper.setVpnServiceOnBoot(this, true);
+                    // Request to ignore battery optimization
+                    BatteryOptimizationUtils.requestIgnoreBatteryOptimizations(this);
+                    // Open the system autostart settings when available
+                    AutostartUtils.openOemAutostartSettings(this);
+                })
+                .setNegativeButton(R.string.startup_permission_dialog_later, (dialog, which) -> dialog.dismiss())
                 .create()
                 .show();
     }
@@ -214,23 +216,29 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void bindAppVersion() {
-        TextView versionTextView = this.binding.content.versionTextView;
-        versionTextView.setText(this.homeViewModel.getVersionName());
-        versionTextView.setOnClickListener(this::showUpdate);
+        TextView appNameTextView = this.binding.content.appNameTextView;
+        String appName = getString(R.string.app_name);
+        String version = this.homeViewModel.getVersionName();
+        // Show the version right after the application name
+        appNameTextView.setText(getString(R.string.app_name_version, appName, version));
+        appNameTextView.setOnClickListener(this::showUpdate);
 
         this.homeViewModel.getAppManifest().observe(
                 this,
                 manifest -> {
                     if (manifest.updateAvailable) {
-                        versionTextView.setTypeface(versionTextView.getTypeface(), Typeface.BOLD);
-                        versionTextView.setText(R.string.update_available);
+                        appNameTextView.setTypeface(appNameTextView.getTypeface(), Typeface.BOLD);
+                        appNameTextView.setText(getString(R.string.app_name_version, appName, version)
+                                + " • " + getString(R.string.update_available));
                     }
                 }
         );
     }
 
     private void bindHostCounter() {
-        Function1<Integer, CharSequence> stringMapper = count -> Integer.toString(count);
+        // Show the counts with the locale digit grouping (e.g. 72,237), easier to read than 72237
+        NumberFormat numberFormat = NumberFormat.getIntegerInstance();
+        Function1<Integer, CharSequence> stringMapper = count -> numberFormat.format(count == null ? 0 : count);
 
         TextView blockedHostCountTextView = this.binding.content.blockedHostCounterTextView;
         LiveData<Integer> blockedHostCount = this.homeViewModel.getBlockedHostCount();
@@ -283,6 +291,18 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
+    private void bindLastSourceUpdate() {
+        TextView lastUpdateTextView = this.binding.content.lastUpdateTextView;
+        this.homeViewModel.getLastSourceUpdate().observe(this, dateTime -> {
+            if (dateTime == null || dateTime.isEmpty()) {
+                removeView(lastUpdateTextView);
+            } else {
+                lastUpdateTextView.setText(getString(R.string.home_sources_last_update, dateTime));
+                showView(lastUpdateTextView);
+            }
+        });
+    }
+
     private void bindClickListeners() {
         this.binding.content.blockedHostCardView.setOnClickListener(v -> startHostListActivity(BLOCKED_HOSTS_TAB));
         this.binding.content.allowedHostCardView.setOnClickListener(v -> startHostListActivity(ALLOWED_HOSTS_TAB));
@@ -290,48 +310,15 @@ public class HomeActivity extends AppCompatActivity {
         this.binding.content.sourcesCardView.setOnClickListener(this::startHostsSourcesActivity);
         this.binding.content.checkForUpdateImageView.setOnClickListener(v -> this.homeViewModel.update());
         this.binding.content.updateImageView.setOnClickListener(v -> this.homeViewModel.sync());
-        this.binding.content.logCardView.setOnClickListener(this::startDnsLogActivity);
-        this.binding.content.helpCardView.setOnClickListener(this::startHelpActivity);
-        this.binding.content.supportCardView.setOnClickListener(this::showSupportActivity);
     }
 
-    private void setUpBottomDrawer() {
-        this.drawerBehavior = BottomSheetBehavior.from(this.binding.bottomDrawer);
-        this.drawerBehavior.setState(STATE_HIDDEN);
-
-        this.onBackPressedCallback = new OnBackPressedCallback(false) {
-            @Override
-            public void handleOnBackPressed() {
-                // Hide drawer if expanded
-                HomeActivity.this.drawerBehavior.setState(STATE_HIDDEN);
-                HomeActivity.this.onBackPressedCallback.setEnabled(false);
-            }
-        };
-        getOnBackPressedDispatcher().addCallback(this.onBackPressedCallback);
-
-        this.binding.bar.setNavigationOnClickListener(v -> {
-            this.drawerBehavior.setState(STATE_HALF_EXPANDED);
-            this.onBackPressedCallback.setEnabled(true);
-        });
-//        this.binding.bar.setNavigationIcon(R.drawable.ic_menu_24dp);
-//        this.binding.bar.replaceMenu(R.menu.next_actions);
+    private void bindDrawerButton() {
+        // Open the preferences directly from the navigation button
+        this.binding.content.homeDrawerButton.setOnClickListener(v -> startPrefsActivity());
     }
 
     private void bindFab() {
         this.binding.fab.setOnClickListener(v -> this.homeViewModel.toggleAdBlocking());
-    }
-
-    private boolean showFragment(@IdRes int actionId) {
-        if (actionId == R.id.drawer_preferences) {
-            startPrefsActivity();
-            this.drawerBehavior.setState(STATE_HIDDEN);
-            return true;
-        } else if (actionId == R.id.drawer_github_project) {
-            showProjectPage();
-            this.drawerBehavior.setState(STATE_HIDDEN);
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -355,52 +342,28 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     /**
-     * Start help activity.
-     *
-     * @param view The source event view.
-     */
-    private void startHelpActivity(View view) {
-        startActivity(new Intent(this, HelpActivity.class));
-    }
-
-    /**
-     * Show development project page.
-     */
-    private void showProjectPage() {
-        // Show development page
-        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(PROJECT_LINK));
-        startActivity(browserIntent);
-    }
-
-    /**
-     * Show support activity.
-     *
-     * @param view The source event view.
-     */
-    private void showSupportActivity(View view) {
-        startActivity(new Intent(this, SupportActivity.class));
-    }
-
-    /**
      * Start preferences activity.
      */
     private void startPrefsActivity() {
         startActivity(new Intent(this, PrefsActivity.class));
     }
 
-    /**
-     * Start DNS log activity.
-     *
-     * @param view The source event view.
-     */
-    private void startDnsLogActivity(View view) {
-        startActivity(new Intent(this, LogActivity.class));
-    }
-
     private void notifyAdBlocked(boolean adBlocked) {
-        int color = adBlocked ? getResources().getColor(R.color.primary, null) : Color.GRAY;
+        // Status color: green when ad blocking is running, red when stopped
+        int color = getColor(adBlocked ? R.color.adblock_active : R.color.adblock_stopped);
+        // Header background indicates the ad blocking state, the status bar continues it
         this.binding.content.headerFrameLayout.setBackgroundColor(color);
-        this.binding.fab.setImageResource(adBlocked ? R.drawable.ic_pause_24dp : R.drawable.logo);
+        getWindow().setStatusBarColor(color);
+        // Update the start/stop button icon and description
+        this.binding.fab.setImageResource(adBlocked ? R.drawable.ic_stop_24dp : R.drawable.ic_start_24dp);
+        this.binding.fab.setContentDescription(getString(
+                adBlocked ? R.string.adblock_stop_button_description : R.string.adblock_start_button_description
+        ));
+        // Update the status shown in the header (its colors follow the header)
+        TextView statusTextView = this.binding.content.adBlockStatusTextView;
+        statusTextView.setText(adBlocked ? R.string.adblock_status_running : R.string.adblock_status_stopped);
+        // Hidden until the state is known, so no empty status is shown at startup
+        statusTextView.setVisibility(View.VISIBLE);
     }
 
     private void notifyError(HostError error) {

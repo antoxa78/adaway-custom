@@ -126,9 +126,10 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
      */
     public void start() {
         Timber.d("Starting VPN thread…");
-        this.generation.incrementAndGet();
+        // Capture the generation now so the worker thread cannot pick up a later one
+        int workerGeneration = this.generation.incrementAndGet();
         ExecutorService executor = Executors.newFixedThreadPool(2);
-        executor.submit(this::work);
+        executor.submit(() -> work(workerGeneration));
         executor.submit(this.connectionMonitor::monitor);
         setExecutor(executor);
         Timber.i("VPN thread started.");
@@ -139,6 +140,9 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
      */
     public void stop() {
         Timber.d("Stopping VPN thread.");
+        // Invalidate the current worker thread so it exits silently instead of reporting a stale
+        // STOPPING / STOPPED status over the status set by the service (e.g. WAITING_FOR_NETWORK)
+        this.generation.incrementAndGet();
         this.connectionMonitor.reset();
         forceCloseTunnel();
         setExecutor(null);
@@ -174,9 +178,8 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
         }
     }
 
-    private void work() {
+    private void work(int currentGeneration) {
         Timber.d("Starting work…");
-        int currentGeneration = this.generation.get();
         // Initialize context
         this.dnsPacketProxy.initialize(this.vpnService);
         // Initialize the watchdog
@@ -227,8 +230,9 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
             // Initialize connection monitor
             this.connectionMonitor.initialize();
 
-            // Update address to ping with default DNS server
-            this.vpnWatchDog.setTarget(this.dnsServerMapper.getDefaultDnsServerAddress());
+            // Probe the fake DNS server address: it is routed into the tunnel, so a healthy tunnel
+            // always hands the probe back to this worker (see VpnWatchdog)
+            this.vpnWatchDog.setTarget(this.dnsServerMapper.getDefaultDnsServerAlias());
 
             // Now we are connected. Set the flag and show the message.
             this.vpnService.notifyVpnStatus(RUNNING);
@@ -260,8 +264,8 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
         try {
             Timber.d("doOne: Polling %d file descriptors.", polls.length);
             int numberOfEvents = Os.poll(polls, this.vpnWatchDog.getPollTimeout());
-            // A poll timeout while the tunnel is idle is expected and handled by the watchdog,
-            // which no longer treats an unanswered probe as a fatal error.
+            // A poll timeout is handled by the watchdog: it probes the tunnel and throws once
+            // several probes in a row did not come back.
             if (numberOfEvents == 0) {
                 this.vpnWatchDog.handleTimeout();
                 return true;

@@ -1,7 +1,6 @@
 package org.adaway.model.update;
 
 import static android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE;
-import static android.os.Build.VERSION.SDK_INT;
 import static org.adaway.model.update.UpdateStore.getApkStore;
 import static java.util.Objects.requireNonNull;
 
@@ -17,7 +16,9 @@ import androidx.lifecycle.MutableLiveData;
 
 import org.adaway.R;
 import org.adaway.helper.PreferenceHelper;
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -34,8 +35,18 @@ import timber.log.Timber;
  * @author Bruce BUJON (bruce.bujon(at)gmail(dot)com)
  */
 public class UpdateModel {
-    private static final String MANIFEST_URL = "https://api.github.com/repos/antoxa78/adaway-custom/releases/latest";
-    private static final String DOWNLOAD_URL = MANIFEST_URL;
+    /**
+     * The latest stable release (GitHub excludes drafts and pre-releases from this endpoint).
+     */
+    private static final String LATEST_RELEASE_URL = "https://api.github.com/repos/antoxa78/adaway-custom/releases/latest";
+    /**
+     * The release list, including pre-releases, used when beta releases are enabled.
+     */
+    private static final String RELEASES_URL = "https://api.github.com/repos/antoxa78/adaway-custom/releases";
+    /**
+     * The number of releases to look at when beta releases are enabled.
+     */
+    private static final int RELEASES_PAGE_SIZE = 10;
     private final Context context;
     private final VersionInfo versionInfo;
     private final OkHttpClient client;
@@ -119,28 +130,53 @@ public class UpdateModel {
         if (!this.versionInfo.isValid()) {
             return null;
         }
-        HttpUrl httpUrl = requireNonNull(HttpUrl.parse(MANIFEST_URL), "Failed to parse manifest URL")
-                .newBuilder()
-                .addQueryParameter("versionCode", Integer.toString(this.versionInfo.code))
-                .addQueryParameter("sdkCode", Integer.toString(SDK_INT))
-                .addQueryParameter("channel", getChannel())
-                .addQueryParameter("store", getStore().getName())
-                .build();
+        boolean includeBetaReleases = PreferenceHelper.getIncludeBetaReleases(this.context);
+        HttpUrl httpUrl = includeBetaReleases ?
+                requireNonNull(HttpUrl.parse(RELEASES_URL), "Failed to parse releases URL")
+                        .newBuilder()
+                        .addQueryParameter("per_page", Integer.toString(RELEASES_PAGE_SIZE))
+                        .build() :
+                requireNonNull(HttpUrl.parse(LATEST_RELEASE_URL), "Failed to parse latest release URL");
         Request request = new Request.Builder()
                 .url(httpUrl)
+                .header("Accept", "application/vnd.github+json")
                 .build();
         try (Response execute = this.client.newCall(request).execute();
              ResponseBody body = execute.body()) {
-            if (execute.isSuccessful() && body != null) {
-                return new Manifest(body.string(), this.versionInfo.code);
-            } else {
+            if (!execute.isSuccessful() || body == null) {
                 return null;
             }
+            String content = body.string();
+            return includeBetaReleases ?
+                    findNewestRelease(new JSONArray(content)) :
+                    new Manifest(content, this.versionInfo.code);
         } catch (IOException | JSONException exception) {
             Timber.e(exception, "Unable to download manifest.");
             // Return failed
             return null;
         }
+    }
+
+    /**
+     * Find the newest release (stable or pre-release) from a GitHub release list.
+     *
+     * @param releases The GitHub release list.
+     * @return The manifest of the release with the highest version, {@code null} if none.
+     * @throws JSONException If the release list cannot be parsed.
+     */
+    private Manifest findNewestRelease(JSONArray releases) throws JSONException {
+        Manifest newest = null;
+        for (int i = 0; i < releases.length(); i++) {
+            JSONObject release = releases.getJSONObject(i);
+            if (release.optBoolean("draft", false)) {
+                continue;
+            }
+            Manifest manifest = new Manifest(release.toString(), this.versionInfo.code);
+            if (newest == null || manifest.versionCode > newest.versionCode) {
+                newest = manifest;
+            }
+        }
+        return newest;
     }
 
     /**
@@ -152,6 +188,11 @@ public class UpdateModel {
         // Check manifest
         Manifest manifest = this.manifest.getValue();
         if (manifest == null) {
+            return -1;
+        }
+        // Check the release has an APK to download
+        if (manifest.downloadUrl == null) {
+            Timber.w("Release %s has no APK asset to download.", manifest.version);
             return -1;
         }
         // Check previous broadcast receiver

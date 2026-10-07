@@ -4,6 +4,8 @@
     <!-- Card -->
     <dimen name="card_spacing">8dp</dimen>
     <dimen name="card_inner_padding">16dp</dimen>
+    <!-- Home: space kept under the content so the bottom bar and its button never cover it -->
+    <dimen name="home_bottom_bar_clearance">112dp</dimen>
     <!-- Dialog -->
     <dimen name="dialog_spacing">16dp</dimen>
     <dimen name="dialog_inner_padding">16dp</dimen>

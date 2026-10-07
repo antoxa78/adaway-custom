@@ -3,6 +3,8 @@ package org.adaway.db;
 import static org.adaway.db.entity.HostsSource.USER_SOURCE_ID;
 import static org.adaway.db.entity.HostsSource.USER_SOURCE_URL;
 
+import android.database.Cursor;
+
 import androidx.annotation.NonNull;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
@@ -120,4 +122,62 @@ final class Migrations {
             database.execSQL("ALTER TABLE `hosts_sources` ADD `entityTag` TEXT DEFAULT NULL");
         }
     };
+
+    /**
+     * Migration script from v7 to v8.<br>
+     * Ensure the user list exists and owns the reserved id 1.
+     */
+    static final Migration MIGRATION_7_8 = new Migration(7, 8) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            ensureUserList(database, "User list");
+        }
+    };
+
+    /**
+     * Ensure the user list exists and owns the reserved id 1.<br>
+     * On some databases a regular hosts source ended up with the id 1 while the user list was
+     * missing, which made that source be excluded from every query (and so unselectable).
+     *
+     * @param database  The database to repair.
+     * @param userLabel The label to use for the user list.
+     */
+    static void ensureUserList(SupportSQLiteDatabase database, String userLabel) {
+        // Check whether the user list already exists
+        Cursor cursor = database.query(
+                "SELECT 1 FROM hosts_sources WHERE url = ? LIMIT 1",
+                new Object[]{USER_SOURCE_URL}
+        );
+        boolean userListExists = cursor.moveToFirst();
+        cursor.close();
+        if (userListExists) {
+            return;
+        }
+        // Check whether id 1 is occupied by another source
+        String id1Url = null;
+        cursor = database.query("SELECT url FROM hosts_sources WHERE id = 1");
+        if (cursor.moveToFirst()) {
+            id1Url = cursor.getString(0);
+        }
+        cursor.close();
+        if (id1Url != null) {
+            // Preserve the occupying source under a new id
+            database.execSQL(
+                    "INSERT INTO hosts_sources (label, url, enabled, allowEnabled, redirectEnabled, last_modified_local, last_modified_online, entityTag, size) " +
+                            "SELECT label, url, enabled, allowEnabled, redirectEnabled, last_modified_local, last_modified_online, entityTag, size " +
+                            "FROM hosts_sources WHERE id = 1"
+            );
+            // Turn the id 1 row into the user list (its hosts lists stay attached to id 1)
+            database.execSQL(
+                    "UPDATE hosts_sources SET label = ?, url = ?, enabled = 1, allowEnabled = 1, redirectEnabled = 1 WHERE id = 1",
+                    new Object[]{userLabel, USER_SOURCE_URL}
+            );
+        } else {
+            // Create the user list with the reserved id 1
+            database.execSQL(
+                    "INSERT INTO hosts_sources (id, label, url, enabled, allowEnabled, redirectEnabled, size) VALUES (1, ?, ?, 1, 1, 1, 0)",
+                    new Object[]{userLabel, USER_SOURCE_URL}
+            );
+        }
+    }
 }

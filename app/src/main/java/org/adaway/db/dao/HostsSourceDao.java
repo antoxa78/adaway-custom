@@ -48,6 +48,18 @@ public interface HostsSourceDao {
     @Query("UPDATE hosts_lists SET enabled = :enabled WHERE source_id =:id")
     void setSourceItemsEnabled(int id, boolean enabled);
 
+    @Query("DELETE FROM hosts_sources WHERE url = :url")
+    void deleteByUrl(String url);
+
+    @Query("DELETE FROM hosts_sources WHERE id != 1")
+    void deleteNonUserSources();
+
+    @Query("UPDATE hosts_sources SET enabled = :enabled WHERE url = :url")
+    void setSourceEnabledByUrl(String url, boolean enabled);
+
+    @Query("UPDATE hosts_lists SET enabled = :enabled WHERE source_id IN (SELECT id FROM hosts_sources WHERE url = :url)")
+    void setSourceItemsEnabledByUrl(String url, boolean enabled);
+
     @Query("SELECT * FROM hosts_sources WHERE id = :id")
     Optional<HostsSource> getById(int id);
 
@@ -69,11 +81,14 @@ public interface HostsSourceDao {
     @Query("UPDATE hosts_sources SET size = (SELECT count(id) FROM hosts_lists WHERE source_id = :id) WHERE id = :id")
     void updateSize(int id);
 
-    @Query("SELECT count(id) FROM hosts_sources WHERE enabled = 1 AND last_modified_online > last_modified_local")
+    @Query("SELECT count(id) FROM hosts_sources WHERE enabled = 1 AND url != 'content://org.adaway/user/hosts' AND (last_modified_local IS NULL OR (last_modified_online IS NOT NULL AND last_modified_online > last_modified_local))")
     LiveData<Integer> countOutdated();
 
-    @Query("SELECT count(id) FROM hosts_sources WHERE enabled = 1 AND last_modified_online <= last_modified_local")
+    @Query("SELECT count(id) FROM hosts_sources WHERE enabled = 1 AND url != 'content://org.adaway/user/hosts' AND last_modified_local IS NOT NULL AND (last_modified_online IS NULL OR last_modified_online <= last_modified_local)")
     LiveData<Integer> countUpToDate();
+
+    @Query("SELECT MAX(last_modified_local) FROM hosts_sources WHERE id != 1 AND enabled = 1")
+    LiveData<Long> getLastSourceUpdateTimestamp();
 
     @Query("UPDATE hosts_sources SET last_modified_local = NULL, last_modified_online = NULL, entityTag = NULL, size = 0 WHERE id = :id")
     void clearProperties(int id);

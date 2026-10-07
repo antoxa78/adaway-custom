@@ -24,17 +24,21 @@ public class Manifest {
     public final int versionCode;
     @Nullable
     public final String changelog;
+    @Nullable
     public final String downloadUrl;
     public final boolean updateAvailable;
 
     public Manifest(String release, long currentVersionCode) throws JSONException {
         JSONObject releaseObject = new JSONObject(release);
         String tagName = releaseObject.getString("tag_name");
-        this.version = releaseObject.optString("name", tagName);
+        // An untitled release has a null or empty name: fall back to the tag
+        String name = releaseObject.isNull("name") ? "" : releaseObject.optString("name", "").trim();
+        this.version = name.isEmpty() ? tagName : name;
         this.versionCode = versionCodeFromTag(tagName);
         this.changelog = releaseObject.isNull("body") ? null : releaseObject.getString("body");
         this.downloadUrl = getApkUrl(releaseObject.getJSONArray("assets"));
-        this.updateAvailable = this.versionCode > currentVersionCode;
+        // A release without APK asset cannot be installed: do not offer it
+        this.updateAvailable = this.versionCode > currentVersionCode && this.downloadUrl != null;
     }
 
     /**

@@ -3,6 +3,10 @@
     <string name="pref_vpn_title">VPN based ad blocker</string>
     <!-- Service configuration -->
     <string name="pref_vpn_service_on_boot">Enable at startup</string>
+    <string name="pref_vpn_service_on_boot_confirm_title">Run at startup</string>
+    <string name="pref_vpn_service_on_boot_confirm_message">To keep ad blocking active after your phone restarts, AdAway needs to start automatically.\n\nAllow AdAway to run at startup? On some devices you also need to enable the Autostart setting for AdAway in the system settings.</string>
+    <string name="pref_vpn_service_on_boot_confirm_allow">Allow</string>
+    <string name="pref_vpn_service_on_boot_confirm_deny">Not now</string>
     <string name="pref_vpn_service_monitor">Monitor connection</string>
     <string name="pref_vpn_service_monitor_description">Periodically check the network state to restart VPN on disconnection.</string>
     <!-- Battery optimization -->

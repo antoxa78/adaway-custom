@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material theming black theme -->
-    <color name="primary">#B71C1C</color>
-    <color name="primaryVariant">#e53935</color>
-    <color name="onPrimary">#ffffff</color>
-    <color name="blocked">#EF9A9A</color>
-    <color name="allowed">#80CBC4</color>
-    <color name="redirected">#9FA8DA</color>
+    <!-- Material theming black theme (black and white) -->
+    <color name="primary">#FFFFFFFF</color>
+    <color name="primaryVariant">#FFE0E0E0</color>
+    <color name="onPrimary">#FF000000</color>
+    <color name="secondary">#FFFFFFFF</color>
+    <color name="secondaryVariant">#FFE0E0E0</color>
+    <color name="onSecondary">#FF000000</color>
+    <color name="blocked">#FFFFFFFF</color>
+    <color name="allowed">#FFBDBDBD</color>
+    <color name="redirected">#FF757575</color>
+    <color name="selected_background">#33FFFFFF</color>
+    <color name="notification">#FFFFFFFF</color>
+    <color name="adblock_active">#FF81C784</color>
+    <color name="adblock_stopped">#FFEF9A9A</color>
+    <color name="adblock_pending">#FFFFB74D</color>
+    <color name="log_recording">#FFEF5350</color>
 </resources>

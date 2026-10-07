@@ -17,8 +17,9 @@ import timber.log.Timber;
  * This broadcast receiver restarts the VPN service when it has been killed while it is supposed
  * to be running.
  * <p>
- * The system only delivers these broadcasts to manifest registered receivers when the process is
- * not running, which allows the application to restart the VPN tunnel after an unexpected kill.
+ * It listens to the few system broadcasts still delivered to manifest registered receivers
+ * (time, time zone and locale changes, and the application update), which wake the application
+ * up even when its process was killed, so the VPN tunnel can be restarted.
  *
  * @author Bruce BUJON (bruce.bujon(at)gmail(dot)com)
  */

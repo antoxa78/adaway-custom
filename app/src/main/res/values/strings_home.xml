@@ -17,6 +17,7 @@
     </plurals>
     <string name="check_hosts_update_description">Check for hosts updates</string>
     <string name="update_hosts_description">Update hosts</string>
+    <string name="home_sources_last_update">Sources last updated: %1$s</string>
 
     <!-- Log card -->
     <string name="log_label">Show DNS request log</string>
@@ -37,6 +38,10 @@
     <!-- App bar buttons -->
     <string name="open_drawer_button_description">Open navigation drawer</string>
     <string name="adblock_pause_button_description">Pause/resume ad blocking</string>
+    <string name="adblock_start_button_description">Start ad blocking</string>
+    <string name="adblock_stop_button_description">Stop ad blocking</string>
+    <string name="adblock_status_running">Ad blocking is running</string>
+    <string name="adblock_status_stopped">Ad blocking is stopped</string>
     <string name="update_button">Update blocked domains</string>
     <string name="show_log_button">Show requested domains</string>
 
@@ -45,8 +50,14 @@
 
     <!-- Battery optimization dialog -->
     <string name="battery_optimization_dialog_title">Keep AdAway running</string>
-    <string name="battery_optimization_dialog_message">Your system may pause AdAway in the background to save battery. While paused, DNS requests are not handled and the internet may appear to be offline.\n\nTap "Request" to allow AdAway to run without battery optimization.</string>
+    <string name="battery_optimization_dialog_message">Your system may pause AdAway in the background to save battery. While paused, DNS requests are not handled and the internet may appear to be offline.\n\nTap \"Request\" to allow AdAway to run without battery optimization.</string>
     <string name="battery_optimization_dialog_positive">Request</string>
     <string name="battery_optimization_dialog_negative">Remind me later</string>
+
+    <!-- Startup permission dialog -->
+    <string name="startup_permission_dialog_title">Keep AdAway running</string>
+    <string name="startup_permission_dialog_message">To block ads reliably and keep working after a reboot, AdAway should be allowed to ignore battery optimization and start automatically at phone startup.\n\nAllow AdAway to run in the background and at startup?</string>
+    <string name="startup_permission_dialog_allow">Allow</string>
+    <string name="startup_permission_dialog_later">Not now</string>
 
 </resources>

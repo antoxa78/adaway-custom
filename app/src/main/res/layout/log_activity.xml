@@ -41,6 +41,18 @@
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
+    <TextView
+        android:id="@+id/recordingTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="88dp"
+        android:text="@string/log_recording"
+        android:textAppearance="?attr/textAppearanceSubtitle1"
+        android:textColor="@color/log_recording"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/toggle_log_recording"
         android:layout_width="wrap_content"

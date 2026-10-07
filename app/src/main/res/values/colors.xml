@@ -1,23 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material theming light theme -->
-    <color name="primary">#ef5350</color>
-    <color name="primaryVariant">#e53935</color>
-    <color name="onPrimary">#000000</color>
+    <!-- Material theming light theme (black and white) -->
+    <color name="primary">#FF000000</color>
+    <color name="primaryVariant">#FF212121</color>
+    <color name="onPrimary">#FFFFFFFF</color>
+    <color name="secondary">#FF000000</color>
+    <color name="secondaryVariant">#FF212121</color>
+    <color name="onSecondary">#FFFFFFFF</color>
     <!-- App icon colors -->
-    <color name="drawer_icon">#B71C1C</color>
+    <color name="drawer_icon">#FF000000</color>
     <!-- Host list state -->
-    <color name="blocked">#FF5252</color>
-    <color name="allowed">#00BFA5</color>
-    <color name="redirected">#536DFE</color>
+    <color name="blocked">#FF212121</color>
+    <color name="allowed">#FF616161</color>
+    <color name="redirected">#FF9E9E9E</color>
     <!-- Common UI elements -->
-    <color name="selected_background">#78b71c1c</color>
-    <color name="shortcut_background">#f5f5f5</color>
+    <color name="selected_background">#33000000</color>
+    <color name="shortcut_background">#FFF5F5F5</color>
     <color name="card_spacer">#3F000000</color>
     <!-- Cards -->
     <color name="cardBackground">#FF424242</color>
-    <color name="cardEnabledBackground">#388E3C</color>
-    <color name="welcomeBackground">#B71C1C</color>
+    <color name="cardEnabledBackground">#FF616161</color>
+    <color name="welcomeBackground">#FF000000</color>
+    <color name="welcomeText">#FFFFFFFF</color>
     <!-- Notifications -->
-    <color name="notification">#b71c1c</color>
+    <color name="notification">#FF212121</color>
+    <!-- Ad blocking state -->
+    <color name="adblock_active">#FF2E7D32</color>
+    <color name="adblock_stopped">#FFC62828</color>
+    <!-- While starting, reconnecting or waiting for a network -->
+    <color name="adblock_pending">#FFA15C00</color>
+    <!-- Translucent background of the status pill shown on the colored home header -->
+    <color name="header_pill">#33000000</color>
+    <!-- DNS log recording -->
+    <color name="log_recording">#FFD32F2F</color>
 </resources>

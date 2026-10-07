@@ -33,9 +33,10 @@ public class VpnConnectionMonitor {
      */
     private final AtomicBoolean running;
     /**
-     * The network interface to monitor (<code>null</code> if not initialized).
+     * The network interface to monitor (<code>null</code> if not initialized).<br>
+     * It is set by the worker thread and read by the monitor thread.
      */
-    private NetworkInterface networkInterface;
+    private volatile NetworkInterface networkInterface;
 
     /**
      * Constructor.
@@ -100,13 +101,17 @@ public class VpnConnectionMonitor {
      * Monitor the VPN network interface is still up while the VPN is running.
      */
     void monitor() {
+        // The same monitor instance is reused each time the worker starts: re-arm it
+        this.running.set(true);
         try {
             while (this.running.get()) {
-                if (this.networkInterface != null && !this.networkInterface.isUp()) {
+                NetworkInterface monitoredInterface = this.networkInterface;
+                if (monitoredInterface != null && !monitoredInterface.isUp()) {
                     stop();
-                    Timber.i("VPN network interface %s is down. Starting VPN service…",
-                            this.networkInterface == null ? "unset" : this.networkInterface.getName());
-                    VpnServiceControls.start(this.context);
+                    Timber.i("VPN network interface %s is down. Restarting VPN service…",
+                            monitoredInterface.getName());
+                    // Use restart, not start: the service is still running, only its tunnel is dead
+                    VpnServiceControls.restart(this.context);
                 }
                 try {
                     Thread.sleep(CONNECTION_CHECK_DELAY_MS);
@@ -117,9 +122,11 @@ public class VpnConnectionMonitor {
                 }
             }
         } catch (SocketException e) {
-            Timber.w(e, "Failed to test VPN network interface %s. Starting VPN service…", this.networkInterface.getName());
+            NetworkInterface monitoredInterface = this.networkInterface;
+            Timber.w(e, "Failed to test VPN network interface %s. Restarting VPN service…",
+                    monitoredInterface == null ? "unset" : monitoredInterface.getName());
             reset();
-            VpnServiceControls.start(this.context);
+            VpnServiceControls.restart(this.context);
         }
     }
 

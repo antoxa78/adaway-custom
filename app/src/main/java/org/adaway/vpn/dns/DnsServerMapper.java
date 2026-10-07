@@ -56,12 +56,18 @@ public class DnsServerMapper {
      * The original DNS servers.
      */
     private final List<InetAddress> dnsServers;
+    /**
+     * The fake address of the last IPv4 DNS server, routed into the tunnel
+     * (<code>null</code> if there is no IPv4 DNS server).
+     */
+    private InetAddress defaultDnsServerAlias;
 
     /**
      * Constructor.
      */
     public DnsServerMapper() {
         this.dnsServers = new ArrayList<>();
+        this.defaultDnsServerAlias = null;
     }
 
     /**
@@ -80,6 +86,7 @@ public class DnsServerMapper {
         Subnet ipv6Subnet = hasIpV6DnsServers(context, dnsServers) ? addIpv6Address(builder) : null;
         // Configure DNS mapping
         this.dnsServers.clear();
+        this.defaultDnsServerAlias = null;
         for (InetAddress dnsServer : dnsServers) {
             Subnet subnetForDnsServer = dnsServer instanceof Inet4Address ? ipv4Subnet : ipv6Subnet;
             if (subnetForDnsServer == null) {
@@ -92,8 +99,19 @@ public class DnsServerMapper {
             builder.addDnsServer(dnsAddressAlias);
             if (dnsServer instanceof Inet4Address) {
                 builder.addRoute(dnsAddressAlias, 32);
+                this.defaultDnsServerAlias = dnsAddressAlias;
             }
         }
+    }
+
+    /**
+     * Get the fake address of the default DNS server.<br>
+     * This address is routed into the tunnel, so packets sent to it come back to the VPN worker.
+     *
+     * @return The fake address of the last IPv4 DNS server, <code>null</code> if there is none.
+     */
+    public InetAddress getDefaultDnsServerAlias() {
+        return this.defaultDnsServerAlias;
     }
 
     public InetAddress getDefaultDnsServerAddress() {

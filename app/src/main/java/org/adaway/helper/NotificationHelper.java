@@ -104,7 +104,7 @@ public final class NotificationHelper {
         intent.setFlags(FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent pendingIntent = getActivity(context, 0, intent, FLAG_IMMUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, UPDATE_NOTIFICATION_CHANNEL)
-                .setSmallIcon(R.drawable.logo)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setColorized(true)
                 .setColor(color)
                 .setShowWhen(false)
@@ -136,7 +136,7 @@ public final class NotificationHelper {
         intent.setFlags(FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent pendingIntent = getActivity(context, 0, intent, FLAG_IMMUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, UPDATE_NOTIFICATION_CHANNEL)
-                .setSmallIcon(R.drawable.logo)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setColorized(true)
                 .setColor(color)
                 .setShowWhen(false)

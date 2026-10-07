@@ -26,6 +26,7 @@ import static org.adaway.db.Migrations.MIGRATION_3_4;
 import static org.adaway.db.Migrations.MIGRATION_4_5;
 import static org.adaway.db.Migrations.MIGRATION_5_6;
 import static org.adaway.db.Migrations.MIGRATION_6_7;
+import static org.adaway.db.Migrations.MIGRATION_7_8;
 import static org.adaway.db.entity.HostsSource.USER_SOURCE_ID;
 import static org.adaway.db.entity.HostsSource.USER_SOURCE_URL;
 
@@ -34,7 +35,7 @@ import static org.adaway.db.entity.HostsSource.USER_SOURCE_URL;
  *
  * @author Bruce BUJON (bruce.bujon(at)gmail(dot)com)
  */
-@Database(entities = {HostsSource.class, HostListItem.class, HostEntry.class}, version = 7)
+@Database(entities = {HostsSource.class, HostListItem.class, HostEntry.class}, version = 8)
 @TypeConverters({ListTypeConverter.class, ZonedDateTimeConverter.class})
 public abstract class AppDatabase extends RoomDatabase {
     /**
@@ -63,13 +64,21 @@ public abstract class AppDatabase extends RoomDatabase {
                                     () -> AppDatabase.initialize(context, instance)
                             );
                         }
+
+                        @Override
+                        public void onOpen(@NonNull SupportSQLiteDatabase db) {
+                            AppExecutors.getInstance().diskIO().execute(
+                                    () -> AppDatabase.repairUserList(context, db)
+                            );
+                        }
                     }).addMigrations(
                             MIGRATION_1_2,
                             MIGRATION_2_3,
                             MIGRATION_3_4,
                             MIGRATION_4_5,
                             MIGRATION_5_6,
-                            MIGRATION_6_7
+                            MIGRATION_6_7,
+                            MIGRATION_7_8
                     ).build();
                 }
             }
@@ -94,6 +103,18 @@ public abstract class AppDatabase extends RoomDatabase {
         userSource.setAllowEnabled(true);
         userSource.setRedirectEnabled(true);
         hostsSourceDao.insert(userSource);
+        // Default sources
+        insertDefaultSources(context, hostsSourceDao);
+    }
+
+    /**
+     * Insert the default hosts sources (AdAway official, StevenBlack and Pete Lowe).<br>
+     * Existing sources with the same URL are left untouched.
+     *
+     * @param context        The application context.
+     * @param hostsSourceDao The hosts source DAO.
+     */
+    public static void insertDefaultSources(Context context, HostsSourceDao hostsSourceDao) {
         // AdAway official
         HostsSource source1 = new HostsSource();
         source1.setLabel(context.getString(R.string.hosts_adaway_source));
@@ -109,6 +130,23 @@ public abstract class AppDatabase extends RoomDatabase {
         source3.setLabel(context.getString(R.string.hosts_peterlowe_source));
         source3.setUrl("https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext");
         hostsSourceDao.insert(source3);
+    }
+
+    /**
+     * Ensure the user list exists and owns the reserved id 1 (repairs databases restored from a
+     * backup where a regular source occupied id 1).
+     *
+     * @param context The application context.
+     * @param db      The opened database.
+     */
+    private static void repairUserList(Context context, SupportSQLiteDatabase db) {
+        db.beginTransaction();
+        try {
+            Migrations.ensureUserList(db, context.getString(R.string.hosts_user_source));
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
     }
 
     /**

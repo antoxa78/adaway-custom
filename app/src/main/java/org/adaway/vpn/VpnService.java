@@ -15,13 +15,13 @@
 package org.adaway.vpn;
 
 import static android.Manifest.permission.POST_NOTIFICATIONS;
-import static android.app.NotificationManager.IMPORTANCE_LOW;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE;
 import static android.net.NetworkCapabilities.TRANSPORT_CELLULAR;
+import static android.net.NetworkCapabilities.TRANSPORT_VPN;
 import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
@@ -51,7 +51,10 @@ import android.net.NetworkRequest;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.view.View;
+import android.widget.RemoteViews;
 
+import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -66,8 +69,8 @@ import org.adaway.ui.home.HomeActivity;
 import org.adaway.vpn.worker.VpnWorker;
 
 import java.lang.ref.WeakReference;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 import timber.log.Timber;
 
@@ -100,7 +103,12 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
     private final MyHandler handler;
     private final NetworkTypeCallback wifiNetworkCallback;
     private final NetworkTypeCallback cellularNetworkCallback;
-    private final Map<NetworkType, Integer> availableNetworkTypes;
+    /**
+     * The available (Wi-Fi or cellular) networks.<br>
+     * Networks are tracked by identity so a network reported twice (once by the initial check,
+     * once by the callback registration) is only counted once.
+     */
+    private final Set<Network> availableNetworks;
     private final VpnWorker vpnWorker;
 
     /**
@@ -110,7 +118,7 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         this.handler = new MyHandler(this);
         this.wifiNetworkCallback = new NetworkTypeCallback(WIFI);
         this.cellularNetworkCallback = new NetworkTypeCallback(CELLULAR);
-        this.availableNetworkTypes = new HashMap<>();
+        this.availableNetworks = new HashSet<>();
         this.vpnWorker = new VpnWorker(this);
     }
 
@@ -164,8 +172,9 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
             startVpn();
         } else {
             Timber.w("VPN preparation revoked, waiting for user to re-authorize.");
-            PreferenceHelper.setVpnServiceStatus(this, STOPPED);
-            updateVpnStatus(STOPPED);
+            // Fully stop the service (status, foreground notification and service itself),
+            // as the default onRevoke() implementation would do
+            stopVpn();
         }
     }
 
@@ -195,6 +204,9 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         Timber.d("Starting VPN service…");
         PreferenceHelper.setVpnServiceStatus(this, RUNNING);
         updateVpnStatus(STARTING);
+        // Stop any previous worker first: a start command may be sent to an already running
+        // service to rebuild a broken tunnel (see VpnServiceControls.restart()).
+        this.vpnWorker.stop();
         this.vpnWorker.start();
         Timber.i("VPN service started.");
     }
@@ -253,13 +265,32 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         intent.setFlags(FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent contentIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, FLAG_IMMUTABLE);
 
+        // Status color: green when blocking, amber while (re)connecting or waiting, red when stopped
+        int statusColor = getColor(getStatusColor(status));
+        String text = getStatusText(status);
+        // Custom content view to color the notification title with the status color. The system
+        // header above it already shows the (tinted) small icon and the application name.
+        RemoteViews contentView = new RemoteViews(getPackageName(), R.layout.notification_vpn);
+        contentView.setTextViewText(R.id.notificationTitle, title);
+        contentView.setTextColor(R.id.notificationTitle, statusColor);
+        if (text == null) {
+            contentView.setViewVisibility(R.id.notificationText, View.GONE);
+        } else {
+            contentView.setTextViewText(R.id.notificationText, text);
+            contentView.setViewVisibility(R.id.notificationText, View.VISIBLE);
+        }
+        contentView.setOnClickPendingIntent(R.id.notificationContent, contentIntent);
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, VPN_SERVICE_NOTIFICATION_CHANNEL)
-                .setPriority(IMPORTANCE_LOW)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(contentIntent)
-                .setSmallIcon(R.drawable.logo)
-                .setColorized(true)
-                .setColor(getColor(R.color.notification))
-                .setContentTitle(title);
+                .setSmallIcon(R.drawable.ic_notification)
+                .setColor(statusColor)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setShowWhen(false)
+                .setCustomContentView(contentView)
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle());
         switch (status) {
             case RUNNING:
                 Intent stopIntent = new Intent(this, CommandReceiver.class)
@@ -287,6 +318,37 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         return builder.build();
     }
 
+    @ColorRes
+    private static int getStatusColor(VpnStatus status) {
+        switch (status) {
+            case RUNNING:
+                return R.color.adblock_active;
+            case STOPPED:
+                return R.color.adblock_stopped;
+            default:
+                return R.color.adblock_pending;
+        }
+    }
+
+    @Nullable
+    private String getStatusText(VpnStatus status) {
+        switch (status) {
+            case STARTING:
+                return getString(R.string.vpn_notification_text_starting);
+            case RUNNING:
+                return getString(R.string.vpn_notification_text_running);
+            case WAITING_FOR_NETWORK:
+                return getString(R.string.vpn_notification_text_waiting_for_net);
+            case RECONNECTING:
+            case RECONNECTING_NETWORK_ERROR:
+                return getString(R.string.vpn_notification_text_reconnecting);
+            case STOPPED:
+                return getString(R.string.vpn_notification_text_stopped);
+            default:
+                return null;
+        }
+    }
+
     private void registerNetworkCallback() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         NetworkRequest wifiNetworkRequest = new NetworkRequest.Builder()
@@ -308,45 +370,38 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
     }
 
     private void initializeNetworkTypes(ConnectivityManager connectivityManager) {
-        this.availableNetworkTypes.clear();
+        this.availableNetworks.clear();
         Network activeNetwork = connectivityManager.getActiveNetwork();
         if (activeNetwork != null) {
             NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
-            if (networkCapabilities != null) {
-                if (networkCapabilities.hasTransport(TRANSPORT_WIFI)) {
-                    this.availableNetworkTypes.put(WIFI, 1);
-                }
-                if (networkCapabilities.hasTransport(TRANSPORT_CELLULAR)) {
-                    this.availableNetworkTypes.put(CELLULAR, 1);
-                }
+            if (networkCapabilities != null
+                    && !networkCapabilities.hasTransport(TRANSPORT_VPN)
+                    && (networkCapabilities.hasTransport(TRANSPORT_WIFI) || networkCapabilities.hasTransport(TRANSPORT_CELLULAR))) {
+                this.availableNetworks.add(activeNetwork);
             }
         }
-        Timber.d("Initial network types: %s ", this.availableNetworkTypes);
+        Timber.d("Initial networks: %s ", this.availableNetworks);
     }
 
-    private void addNetworkType(NetworkType type) {
-        boolean noNetwork = this.availableNetworkTypes.isEmpty();
-        this.availableNetworkTypes.merge(type, 1, Integer::sum);
-        if (noNetwork) {
-            Timber.d("Reconnecting VPN on network %s.", type);
+    private void addNetwork(Network network, NetworkType type) {
+        boolean noNetwork = this.availableNetworks.isEmpty();
+        // The callback registration reports already connected networks again: ignore duplicates
+        boolean added = this.availableNetworks.add(network);
+        if (added && noNetwork) {
+            Timber.d("Reconnecting VPN on network %s (%s).", network, type);
             reconnect();
         }
     }
 
-    private void removeNetworkType(NetworkType type) {
-        // Only act when the LAST network of ANY type is gone: losing one network while another
-        // remains (dual-band Wi-Fi links, or a cellular blip while Wi-Fi is the actual carrier)
-        // must not stop or restart the VPN. If the real carrier actually changed, the worker
-        // self-heals by reconnecting on the first failed DNS forward (ENETUNREACH) and re-maps
-        // the DNS servers with {@link DnsServerMapper}.
-        int count = this.availableNetworkTypes.getOrDefault(type, 0);
-        if (count > 1) {
-            this.availableNetworkTypes.put(type, count - 1);
-            return;
-        }
-        this.availableNetworkTypes.remove(type);
-        if (this.availableNetworkTypes.isEmpty()) {
-            Timber.d("Waiting for network…");
+    private void removeNetwork(Network network, NetworkType type) {
+        // Only act when the LAST network is gone: losing one network while another remains
+        // (dual-band Wi-Fi links, or a cellular blip while Wi-Fi is the actual carrier) must not
+        // stop or restart the VPN. If the real carrier actually changed, the worker self-heals by
+        // reconnecting on the first failed DNS forward (ENETUNREACH) and re-maps the DNS servers
+        // with {@link org.adaway.vpn.dns.DnsServerMapper}.
+        boolean removed = this.availableNetworks.remove(network);
+        if (removed && this.availableNetworks.isEmpty()) {
+            Timber.d("Lost last network %s (%s). Waiting for network…", network, type);
             waitForNetVpn();
         }
     }
@@ -367,13 +422,13 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         @Override
         public void onAvailable(@NonNull Network network) {
             Timber.d("On available %s", this.monitoredType);
-            addNetworkType(this.monitoredType);
+            addNetwork(network, this.monitoredType);
         }
 
         @Override
         public void onLost(@NonNull Network network) {
             Timber.d("On lost %s", this.monitoredType);
-            removeNetworkType(this.monitoredType);
+            removeNetwork(network, this.monitoredType);
         }
     }
 

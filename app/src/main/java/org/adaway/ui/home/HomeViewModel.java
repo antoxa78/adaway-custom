@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 
 import org.adaway.AdAwayApplication;
 import org.adaway.db.AppDatabase;
@@ -19,6 +20,11 @@ import org.adaway.model.source.SourceModel;
 import org.adaway.model.update.Manifest;
 import org.adaway.model.update.UpdateModel;
 import org.adaway.util.AppExecutors;
+import org.adaway.util.DateTimeUtils;
+
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 import timber.log.Timber;
 
@@ -106,6 +112,24 @@ public class HomeViewModel extends AndroidViewModel {
 
     public LiveData<String> getState() {
         return this.state;
+    }
+
+    /**
+     * Get the date and time of the last sources update ({@code null} if no source was ever updated).
+     *
+     * @return The formatted date and time of the last sources update.
+     */
+    public LiveData<String> getLastSourceUpdate() {
+        return Transformations.map(this.hostsSourceDao.getLastSourceUpdateTimestamp(), timestamp -> {
+            if (timestamp == null || timestamp <= 0) {
+                return null;
+            }
+            ZonedDateTime dateTime = ZonedDateTime.ofInstant(
+                    Instant.ofEpochSecond(timestamp),
+                    ZoneId.systemDefault()
+            );
+            return DateTimeUtils.formatDateTime(getApplication(), dateTime);
+        });
     }
 
     public LiveData<HostError> getError() {

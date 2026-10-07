@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Status bar icons color: dark icons are required on the light (black) bar of the light theme. -->
+    <bool name="window_light_status_bar">false</bool>
+</resources>

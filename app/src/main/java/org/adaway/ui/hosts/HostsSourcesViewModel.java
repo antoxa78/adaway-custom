@@ -35,4 +35,15 @@ public class HostsSourcesViewModel extends AndroidViewModel {
     public void toggleSourceEnabled(HostsSource source) {
         EXECUTOR.execute(() -> this.hostsSourceDao.toggleEnabled(source));
     }
+
+    /**
+     * Reset the hosts sources to the default ones.<br>
+     * All sources except the user list are removed, then the default sources are restored.
+     */
+    public void restoreDefaultSources() {
+        EXECUTOR.execute(() -> {
+            this.hostsSourceDao.deleteNonUserSources();
+            AppDatabase.insertDefaultSources(getApplication(), this.hostsSourceDao);
+        });
+    }
 }

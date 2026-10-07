@@ -263,6 +263,37 @@ public final class PreferenceHelper {
         );
     }
 
+    public static void setVpnServiceOnBoot(Context context, boolean value) {
+        SharedPreferences prefs = context.getApplicationContext().getSharedPreferences(
+                Constants.PREFS_NAME,
+                Context.MODE_PRIVATE
+        );
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(context.getString(R.string.pref_vpn_service_on_boot_key), value);
+        editor.apply();
+    }
+
+    public static boolean isStartupPermissionPrompted(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(
+                Constants.PREFS_NAME,
+                Context.MODE_PRIVATE
+        );
+        return prefs.getBoolean(
+                context.getString(R.string.pref_startup_permission_prompted_key),
+                false
+        );
+    }
+
+    public static void setStartupPermissionPrompted(Context context, boolean value) {
+        SharedPreferences prefs = context.getApplicationContext().getSharedPreferences(
+                Constants.PREFS_NAME,
+                Context.MODE_PRIVATE
+        );
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(context.getString(R.string.pref_startup_permission_prompted_key), value);
+        editor.apply();
+    }
+
     public static boolean getVpnWatchdogEnabled(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(
                 Constants.PREFS_NAME,

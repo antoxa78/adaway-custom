@@ -48,6 +48,11 @@ public class UpdateViewModel extends AdwareViewModel {
 
     public void update() {
         long downloadId = this.updateModel.update();
+        if (downloadId < 0) {
+            // Nothing was downloaded: do not track a download that does not exist
+            this.downloadProgress.postValue(null);
+            return;
+        }
         NETWORK_IO.execute(() -> trackProgress(downloadId));
     }
 

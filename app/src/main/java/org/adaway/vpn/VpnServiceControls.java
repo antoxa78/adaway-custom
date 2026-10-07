@@ -73,6 +73,32 @@ public final class VpnServiceControls {
     }
 
     /**
+     * Restart the VPN tunnel.<br>
+     * Unlike {@link #start(Context)}, the start command is always sent, even if the service is
+     * already running, so the service rebuilds its tunnel. Use it when the tunnel is known to be
+     * broken (its network interface went down) or when the VPN configuration changed.
+     *
+     * @param context The application context.
+     * @return {@code true} if the restart command was sent, {@code false} otherwise.
+     */
+    public static boolean restart(Context context) {
+        Intent intent = new Intent(context, VpnService.class);
+        START.appendToIntent(intent);
+        boolean started;
+        try {
+            started = context.startForegroundService(intent) != null;
+        } catch (IllegalStateException e) {
+            Timber.w(e, "Failed to send restart command to VPN service.");
+            return false;
+        }
+        if (started) {
+            // Start the heartbeat
+            VpnServiceHeartbeat.start(context);
+        }
+        return started;
+    }
+
+    /**
      * Stop the VPN service.
      *
      * @param context The application context.

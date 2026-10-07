@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import org.adaway.R;
 import org.adaway.db.entity.HostsSource;
+import org.adaway.util.DateTimeUtils;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -49,6 +50,10 @@ class HostsSourcesAdapter extends ListAdapter<HostsSource, HostsSourcesAdapter.V
     @NonNull
     private final HostsSourcesViewCallback viewCallback;
     private static final String[] QUANTITY_PREFIXES = new String[]{"k", "M", "G"};
+    /**
+     * The opacity of the disabled sources.
+     */
+    private static final float DISABLED_SOURCE_ALPHA = 0.6F;
 
     /**
      * Constructor.
@@ -115,6 +120,8 @@ class HostsSourcesAdapter extends ListAdapter<HostsSource, HostsSourcesAdapter.V
         holder.updateTextView.setText(getUpdateText(source));
         holder.sizeTextView.setText(getHostCount(source));
         holder.itemView.setOnClickListener(view -> viewCallback.edit(source));
+        // Dim disabled sources so the enabled ones stand out
+        holder.itemView.setAlpha(source.isEnabled() ? 1F : DISABLED_SOURCE_ALPHA);
     }
 
     private String getUpdateText(HostsSource source) {
@@ -127,26 +134,36 @@ class HostsSourcesAdapter extends ListAdapter<HostsSource, HostsSourcesAdapter.V
         // Check modification dates
         boolean lastOnlineModificationDefined = source.getOnlineModificationDate() != null;
         boolean lastLocalModificationDefined = source.getLocalModificationDate() != null;
-        // Declare update text
+        // Declare update text and reference date
         String updateText;
+        ZonedDateTime referenceDate = null;
         // Check if last online modification date is known
         if (lastOnlineModificationDefined) {
+            ZonedDateTime onlineModificationDate = source.getOnlineModificationDate();
+            referenceDate = onlineModificationDate;
             // Get last online modification delay
-            String approximateDelay = getApproximateDelay(context, source.getOnlineModificationDate());
+            String approximateDelay = getApproximateDelay(context, onlineModificationDate);
             if (!lastLocalModificationDefined) {
                 updateText = context.getString(R.string.hosts_source_last_update, approximateDelay);
-            } else if (source.getOnlineModificationDate().isAfter(source.getLocalModificationDate())) {
+            } else if (onlineModificationDate.isAfter(source.getLocalModificationDate())) {
                 updateText = context.getString(R.string.hosts_source_need_update, approximateDelay);
             } else {
                 updateText = context.getString(R.string.hosts_source_up_to_date, approximateDelay);
             }
+        } else if (lastLocalModificationDefined) {
+            referenceDate = source.getLocalModificationDate();
+            String approximateDelay = getApproximateDelay(context, referenceDate);
+            updateText = context.getString(R.string.hosts_source_installed, approximateDelay);
         } else {
-            if (lastLocalModificationDefined) {
-                String approximateDelay = getApproximateDelay(context, source.getLocalModificationDate());
-                updateText = context.getString(R.string.hosts_source_installed, approximateDelay);
-            } else {
-                updateText = context.getString(R.string.hosts_source_unknown_status);
-            }
+            updateText = context.getString(R.string.hosts_source_unknown_status);
+        }
+        // Append the date and time of the reference update
+        if (referenceDate != null) {
+            return context.getString(
+                    R.string.hosts_source_update_date,
+                    updateText,
+                    DateTimeUtils.formatDateTime(context, referenceDate)
+            );
         }
         return updateText;
     }
@@ -158,9 +175,9 @@ class HostsSourcesAdapter extends ListAdapter<HostsSource, HostsSourcesAdapter.V
         if (size <= 0 || !source.isEnabled()) {
             return "";
         }
-        // Compute size decimal length
+        // Compute size decimal length (e.g. 1000 has 4 digits)
         int length = 1;
-        while (size > 10) {
+        while (size >= 10) {
             size /= 10;
             length++;
         }

@@ -20,6 +20,8 @@ import org.adaway.util.AppExecutors;
 
 import java.util.Collection;
 
+import timber.log.Timber;
+
 import static com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE;
 import static com.google.android.material.snackbar.Snackbar.LENGTH_LONG;
 
@@ -57,6 +59,16 @@ public class ApplyConfigurationSnackbar {
      * Whether or not ignore update events during the install ({@code true} to ignore, {@code false} otherwise).
      */
     private boolean ignoreEventDuringInstall;
+    /**
+     * The callback invoked on the main thread once an apply operation finishes ({@code null} if none).
+     */
+    @Nullable
+    private Runnable onApplyFinished;
+    /**
+     * The view above which the snackbars are displayed ({@code null} to use the default position).
+     */
+    @Nullable
+    private View anchorView;
 
     /**
      * Constructor.
@@ -75,6 +87,27 @@ public class ApplyConfigurationSnackbar {
         this.ignoreEventDuringInstall = ignoreEventDuringInstall;
         this.update = false;
         this.skipUpdate = false;
+    }
+
+    /**
+     * Set the callback invoked on the main thread once an apply operation finishes.
+     *
+     * @param onApplyFinished The callback to invoke, or {@code null} to clear it.
+     */
+    public void setOnApplyFinished(@Nullable Runnable onApplyFinished) {
+        this.onApplyFinished = onApplyFinished;
+    }
+
+    /**
+     * Set the view above which the snackbars are displayed.<br>
+     * This is useful to prevent the snackbars from covering a bottom bar.
+     *
+     * @param anchorView The anchor view, or {@code null} to use the default position.
+     */
+    public void setAnchorView(@Nullable View anchorView) {
+        this.anchorView = anchorView;
+        this.notifySnackbar.setAnchorView(anchorView);
+        this.waitSnackbar.setAnchorView(anchorView);
     }
 
     /**
@@ -128,7 +161,11 @@ public class ApplyConfigurationSnackbar {
         this.update = false;
     }
 
-    private void apply() {
+    /**
+     * Apply the current configuration (synchronize sources if configured then install the hosts list).<br>
+     * Progress and failures are reported through the snackbars.
+     */
+    public void apply() {
         showLoading();
         AppExecutors.getInstance().diskIO().execute(() -> {
             AdAwayApplication application = (AdAwayApplication) this.view.getContext().getApplicationContext();
@@ -143,6 +180,10 @@ public class ApplyConfigurationSnackbar {
                 adBlockModel.apply();
                 endLoading(true);
             } catch (HostErrorException exception) {
+                endLoading(false);
+            } catch (RuntimeException exception) {
+                // Always end loading, otherwise the wait snackbar and the callers' UI stay stuck
+                Timber.e(exception, "Failed to apply configuration.");
                 endLoading(false);
             }
         });
@@ -170,6 +211,7 @@ public class ApplyConfigurationSnackbar {
             ImageView view = new ImageView(this.view.getContext());
             view.setImageResource(R.drawable.ic_error_outline_24dp);
             appendViewToSnackbar(failureSnackbar, view);
+            failureSnackbar.setAnchorView(this.anchorView);
             failureSnackbar.show();
         }
         // Check pending update notification
@@ -181,6 +223,10 @@ public class ApplyConfigurationSnackbar {
                 // Otherwise display update notification
                 notifyUpdateAvailable();
             }
+        }
+        // Notify apply operation finished on the main thread
+        if (this.onApplyFinished != null) {
+            AppExecutors.getInstance().mainThread().execute(this.onApplyFinished);
         }
     }
 

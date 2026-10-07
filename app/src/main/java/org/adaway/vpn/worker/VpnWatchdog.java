@@ -25,18 +25,19 @@ import java.net.SocketException;
 import timber.log.Timber;
 
 /**
- * Checks that the tunnel can still reach its target and paces the polls.
+ * Checks that the tunnel is still alive and paces the polls.
  * <p>
- * The probes sent here are keep-alives: while the device is idle, a perfectly healthy tunnel
- * carries no packets at all, so a probe may go unanswered for a long time. Therefore an
- * unanswered probe is <em>not</em> treated as a failure. The tunnel is only considered dead when
- * the probe cannot even be sent (e.g. <code>ENETUNREACH</code>), which indicates the underlying
- * network is unreachable. All other failures (closed tunnel, failed DNS forwards) are reported by
- * the DNS forward path and by {@link VpnConnectionMonitor}.
+ * The probe is an empty UDP packet sent by the application to the <em>fake</em> DNS server
+ * address, which is routed into the tunnel. A healthy tunnel therefore always hands the probe back
+ * to the worker, even while the device is idle and no other application sends anything. A probe
+ * that never comes back means the tunnel no longer carries packets.
  * <p>
- * While the tunnel is alive, the poll timeout is quadrupled on success up to a maximum, and it is
- * backed off on consecutive unanswered probes so the watchdog does not hammer the network when the
- * device is simply idle.
+ * A single lost probe is tolerated: the watchdog backs off and probes again. Only after
+ * {@link #MAX_CONSECUTIVE_MISSES} unanswered probes in a row is the tunnel considered dead and a
+ * {@link VpnNetworkException} thrown so the worker reconnects. A probe that cannot even be sent
+ * (e.g. <code>ENETUNREACH</code>) is reported immediately.
+ * <p>
+ * While the tunnel is alive, the poll timeout is quadrupled on success up to a maximum.
  */
 
 class VpnWatchdog {
@@ -45,6 +46,8 @@ class VpnWatchdog {
     private static final int POLL_TIMEOUT_END = 4096000;
     private static final int POLL_TIMEOUT_WAITING = 7000;
     private static final int POLL_TIMEOUT_GROW = 4;
+    // The number of consecutive unanswered probes before the tunnel is considered dead.
+    static final int MAX_CONSECUTIVE_MISSES = 3;
 
     private int pollTimeout = POLL_TIMEOUT_START;
 
@@ -75,8 +78,7 @@ class VpnWatchdog {
             return -1;
         }
         if (this.lastPacketReceived < this.lastPacketSent) {
-            // A probe is awaiting a response. While the device is idle the tunnel may legitimately
-            // stay quiet, so wait a bit longer after each consecutive miss instead of polling fast.
+            // A probe is awaiting to come back from the tunnel: wait a bit longer after each miss.
             return Math.min(POLL_TIMEOUT_WAITING * (1 + this.consecutiveMisses), POLL_TIMEOUT_END);
         }
         return this.pollTimeout;
@@ -84,9 +86,13 @@ class VpnWatchdog {
 
     /**
      * Sets the target address ping packets should be sent to.
+     *
+     * @param target The address routed into the tunnel to probe, <code>null</code> to disable probes.
      */
     void setTarget(InetAddress target) {
-        this.checkAlivePacket = new DatagramPacket(new byte[0], 0, 0 /* length */, target, 53);
+        this.checkAlivePacket = target == null ?
+                null :
+                new DatagramPacket(new byte[0], 0, 0 /* length */, target, 53);
     }
 
     /**
@@ -109,12 +115,9 @@ class VpnWatchdog {
 
     /**
      * Handles a timeout of poll().
-     * <p>
-     * An unanswered probe is expected while the device is idle and is <em>not</em> fatal: only a
-     * failure to send the probe (underlying network unreachable) throws a
-     * {@link VpnNetworkException}.
      *
-     * @throws VpnNetworkException When the probe could not be sent, meaning the network is dead.
+     * @throws VpnNetworkException When too many probes did not come back from the tunnel, or when
+     *                             a probe could not be sent, meaning the tunnel or the network is dead.
      */
     void handleTimeout() throws VpnNetworkException {
         if (!this.enabled) {
@@ -122,10 +125,14 @@ class VpnWatchdog {
         }
         Timber.d("handleTimeout: Milliseconds elapsed between last receive and sent: %dms", (this.lastPacketReceived - this.lastPacketSent));
         if (this.lastPacketReceived < this.lastPacketSent && this.lastPacketSent != 0) {
-            // The probe was not answered within the wait window. This is normal while the device is
-            // idle: a healthy tunnel carries no packets when no application uses it. Do not treat it
-            // as a fatal error; back off and send a new probe.
+            // The probe did not come back from the tunnel within the wait window
             this.consecutiveMisses++;
+            if (this.consecutiveMisses >= MAX_CONSECUTIVE_MISSES) {
+                Timber.w("handleTimeout: %d probes in a row did not come back from the tunnel.", this.consecutiveMisses);
+                this.consecutiveMisses = 0;
+                throw new VpnNetworkException("Watchdog timed out");
+            }
+            // Tolerate a lost probe: back off and send a new one
             this.pollTimeout = Math.min(this.pollTimeout * POLL_TIMEOUT_GROW, POLL_TIMEOUT_END);
             sendPacket();
             return;

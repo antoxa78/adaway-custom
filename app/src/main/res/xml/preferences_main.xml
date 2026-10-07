@@ -39,13 +39,30 @@
             app:title="@string/pref_backup_restore" />
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/pref_help_about_category">
+        <Preference
+            app:icon="@drawable/ic_outline_rule_24"
+            app:key="pref_show_dns_log"
+            app:persistent="false"
+            app:title="@string/pref_show_dns_log" />
+        <Preference
+            app:icon="@drawable/ic_help_24dp"
+            app:key="pref_show_help"
+            app:persistent="false"
+            app:title="@string/pref_show_help" />
+        <Preference
+            app:icon="@drawable/ic_github_24dp"
+            app:key="pref_github_project"
+            app:persistent="false"
+            app:title="@string/pref_github_project" />
+        <Preference
+            app:icon="@drawable/ic_info_24dp"
+            app:key="pref_about"
+            app:persistent="false"
+            app:title="@string/pref_about" />
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="@string/pref_debug_category">
-        <SwitchPreferenceCompat
-            app:defaultValue="@bool/pref_enable_telemetry_def"
-            app:icon="@drawable/outline_cloud_upload_24"
-            app:key="@string/pref_enable_telemetry_key"
-            app:summary="@string/pref_enable_telemetry_summary"
-            app:title="@string/pref_enable_telemetry" />
         <SwitchPreferenceCompat
             app:defaultValue="@bool/pref_enable_debug_def"
             app:icon="@drawable/ic_bug_report_24dp"

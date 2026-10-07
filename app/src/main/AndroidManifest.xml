@@ -76,6 +76,11 @@
             android:label="@string/hosts_title"
             android:parentActivityName=".ui.home.HomeActivity" />
         <activity
+            android:name=".ui.hosts.RecommendedSourcesActivity"
+            android:exported="false"
+            android:label="@string/hosts_recommended_title"
+            android:parentActivityName=".ui.hosts.HostsSourcesActivity" />
+        <activity
             android:name=".ui.source.SourceEditActivity"
             android:exported="false"
             android:label="@string/source_edit_title"
@@ -140,7 +145,7 @@
         <service
             android:name=".tile.AdBlockingTileService"
             android:exported="true"
-            android:icon="@drawable/logo"
+            android:icon="@drawable/ic_notification"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
@@ -158,13 +163,16 @@
         <receiver
             android:name=".broadcast.RestartReceiver"
             android:exported="false">
+            <!--
+                Only broadcasts still delivered to manifest receivers since Android 8, and allowed to
+                start a foreground service since Android 12. POWER_CONNECTED, POWER_DISCONNECTED and
+                DATE_CHANGED are never delivered here, so they are not listed.
+            -->
             <intent-filter>
-                <action android:name="android.intent.action.POWER_CONNECTED" />
-                <action android:name="android.intent.action.POWER_DISCONNECTED" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
                 <action android:name="android.intent.action.LOCALE_CHANGED" />
-                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
         <receiver

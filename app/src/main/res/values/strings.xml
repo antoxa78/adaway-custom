@@ -217,6 +217,7 @@
     <string name="hosts_source_up_to_date">Up-to-date for %1$s</string>
     <string name="hosts_source_need_update">Need update for %1$s</string>
     <string name="hosts_source_last_update">Last update %1$s ago</string>
+    <string name="hosts_source_update_date">%1$s\n%2$s</string>
     <string name="hosts_source_unknown_status">Unknown update status</string>
     <string name="hosts_source_disabled">Disabled</string>
     <string name="hosts_source_few_minutes">few minutes</string>
@@ -250,6 +251,11 @@
     <string name="vpn_notification_paused">paused</string>
     <string name="vpn_notification_stopped">stopped</string>
     <string name="vpn_notification_title">Ad-blocker VPN %1$s</string>
+    <string name="vpn_notification_text_starting">Starting the VPN tunnel…</string>
+    <string name="vpn_notification_text_running">Ads and trackers are blocked</string>
+    <string name="vpn_notification_text_waiting_for_net">Blocking resumes when a network is available</string>
+    <string name="vpn_notification_text_reconnecting">Restoring the VPN tunnel…</string>
+    <string name="vpn_notification_text_stopped">Ads are not blocked. Tap Resume to turn blocking back on.</string>
     <string name="vpn_notification_action_pause">Pause</string>
     <string name="vpn_notification_action_resume">Resume</string>
 

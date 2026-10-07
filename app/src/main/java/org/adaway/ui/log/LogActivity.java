@@ -25,6 +25,8 @@ import static org.adaway.ui.Animations.showView;
 import static java.lang.Boolean.TRUE;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -108,12 +110,26 @@ public class LogActivity extends AppCompatActivity implements LogViewCallback {
          * Configure fab.
          */
         this.binding.toggleLogRecording.setOnClickListener(v -> this.mViewModel.toggleRecording());
-        this.mViewModel.isRecording().observe(this, recoding ->
-                this.binding.toggleLogRecording.setImageResource(TRUE.equals(recoding) ?
-                        R.drawable.ic_pause_24dp :
-                        R.drawable.ic_record_24dp
-                )
-        );
+        // Capture the default button tints to restore them when recording stops
+        ColorStateList defaultBackgroundTint = this.binding.toggleLogRecording.getBackgroundTintList();
+        ColorStateList defaultImageTint = this.binding.toggleLogRecording.getImageTintList();
+        this.mViewModel.isRecording().observe(this, recording -> {
+            boolean isRecording = TRUE.equals(recording);
+            // Update the button icon and paint it red while recording
+            this.binding.toggleLogRecording.setImageResource(isRecording ? R.drawable.ic_pause_24dp : R.drawable.ic_record_24dp);
+            this.binding.toggleLogRecording.setBackgroundTintList(isRecording
+                    ? ColorStateList.valueOf(getColor(R.color.log_recording))
+                    : defaultBackgroundTint);
+            this.binding.toggleLogRecording.setImageTintList(isRecording
+                    ? ColorStateList.valueOf(Color.WHITE)
+                    : defaultImageTint);
+            // Display the recording message
+            if (isRecording) {
+                showView(this.binding.recordingTextView);
+            } else {
+                hideView(this.binding.recordingTextView);
+            }
+        });
         /*
          * Configure snackbar.
          */

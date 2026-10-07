@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:translateX="0" android:translateY="0" android:pivotX="54" android:pivotY="54" android:scaleX="0.9" android:scaleY="0.9">
+        <group android:translateY="1.8">
+            <path android:pathData="M54,27.5 L76,35 L76,52 C76,66.5 66.8,77.6 54,82.5 C41.2,77.6 32,66.5 32,52 L32,35 Z"
+                android:fillColor="#FF000000"
+                android:fillAlpha="0.28" />
+        </group>
+        <path android:pathData="M54,27.5 L76,35 L76,52 C76,66.5 66.8,77.6 54,82.5 C41.2,77.6 32,66.5 32,52 L32,35 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="linear" android:startX="32" android:startY="27.5" android:endX="76" android:endY="82.5" android:startColor="#FFF5FAFF" android:endColor="#FF7FBDF5" />
+            </aapt:attr>
+        </path>
+        <path android:pathData="M54,32.2 L71.6,38.2 L71.6,52 C71.6,63.9 64.3,73.2 54,77.6 C43.7,73.2 36.4,63.9 36.4,52 L36.4,38.2 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="linear" android:startX="54" android:startY="32.2" android:endX="54" android:endY="77.6" android:startColor="#FF2E8DEB" android:endColor="#FF0D3F94" />
+            </aapt:attr>
+        </path>
+        <path android:pathData="M54,32.2 L36.4,38.2 L36.4,52 C36.4,63.9 43.7,73.2 54,77.6 Z"
+            android:fillColor="#FFFFFFFF"
+            android:fillAlpha="0.1" />
+        <path android:pathData="M54,41.6 A11.4,11.4 0 1,1 54,64.4 A11.4,11.4 0 1,1 54,41.6 Z"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="3.8"
+            android:fillColor="#00000000" />
+        <path android:pathData="M46,45 L62,61"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="3.8"
+            android:fillColor="#00000000"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

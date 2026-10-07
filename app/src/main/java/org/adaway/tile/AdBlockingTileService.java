@@ -1,5 +1,6 @@
 package org.adaway.tile;
 
+import android.os.Build;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
@@ -7,6 +8,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 
 import org.adaway.AdAwayApplication;
+import org.adaway.R;
 import org.adaway.model.adblocking.AdBlockModel;
 import org.adaway.model.error.HostErrorException;
 import org.adaway.util.AppExecutors;
@@ -58,6 +60,10 @@ public class AdBlockingTileService extends TileService {
             return;
         }
         tile.setState(adBlocked ? STATE_ACTIVE : STATE_INACTIVE);
+        // Show the state under the tile label (Android 10+), as the tile color alone is not explicit
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            tile.setSubtitle(getString(adBlocked ? R.string.vpn_status_running : R.string.vpn_status_stopped));
+        }
         tile.updateTile();
     }
 
