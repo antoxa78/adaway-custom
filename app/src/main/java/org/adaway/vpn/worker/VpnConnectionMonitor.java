@@ -124,11 +124,10 @@ public class VpnConnectionMonitor {
                 }
                 // Re-map DNS servers when the underlying network changed them: forwarding DNS to a
                 // stale (unreachable) server silently times out and makes the device look offline.
+                // The mapping is updated in place to avoid interrupting DNS with a tunnel restart.
                 DnsServerMapper dnsMapper = this.dnsServerMapper;
-                if (dnsMapper != null && dnsMapper.hasDnsServersChanged(this.context)) {
-                    stop();
-                    Timber.i("Network DNS servers changed. Restarting VPN service to re-map them…");
-                    VpnServiceControls.restart(this.context);
+                if (dnsMapper != null && dnsMapper.remapDnsServers(this.context)) {
+                    Timber.i("Network DNS servers changed, DNS mapping updated in place.");
                 }
                 try {
                     Thread.sleep(CONNECTION_CHECK_DELAY_MS);

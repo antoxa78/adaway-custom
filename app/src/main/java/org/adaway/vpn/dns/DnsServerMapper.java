@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -83,11 +84,13 @@ public class DnsServerMapper {
      * @param builder The builder of the VPN to configure.
      */
     public void configureVpn(Context context, VpnService.Builder builder) {
-        // Get DNS servers
-        List<InetAddress> dnsServers = getNetworkDnsServers(context);
+        dumpNetworkInfo((ConnectivityManager) context.getSystemService(CONNECTIVITY_SERVICE));
+        // Get the DNS servers to map (IPv4 servers always, IPv6 servers only when usable)
+        List<InetAddress> dnsServers = getMappedDnsServers(context);
         // Configure tunnel network address
         Subnet ipv4Subnet = addIpv4Address(builder);
-        Subnet ipv6Subnet = hasIpV6DnsServers(context, dnsServers) ? addIpv6Address(builder) : null;
+        boolean hasIpv6DnsServer = dnsServers.stream().anyMatch(server -> server instanceof Inet6Address);
+        Subnet ipv6Subnet = hasIpv6DnsServer ? addIpv6Address(builder) : null;
         // Configure DNS mapping
         this.dnsServers.clear();
         this.defaultDnsServerAlias = null;
@@ -106,6 +109,24 @@ public class DnsServerMapper {
                 this.defaultDnsServerAlias = dnsAddressAlias;
             }
         }
+    }
+
+    /**
+     * Get the DNS servers to map into the VPN interface for the current network configuration.
+     * <p>
+     * IPv4 servers are always mapped, IPv6 servers are mapped only when IPv6 support is enabled or
+     * the network only provides IPv6 DNS servers. It is the single source of truth used both to
+     * configure the VPN and to detect that the network DNS servers changed.
+     *
+     * @param context The application context.
+     * @return The DNS servers to map, an empty list if no network.
+     */
+    private List<InetAddress> getMappedDnsServers(Context context) {
+        List<InetAddress> dnsServers = getNetworkDnsServers(context);
+        boolean mapIpv6 = hasIpV6DnsServers(context, dnsServers);
+        return dnsServers.stream()
+                .filter(server -> mapIpv6 || server instanceof Inet4Address)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -155,47 +176,49 @@ public class DnsServerMapper {
      */
     private List<InetAddress> getNetworkDnsServers(Context context) {
         ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(CONNECTIVITY_SERVICE);
-        dumpNetworkInfo(connectivityManager);
         Network activeNetwork = connectivityManager.getActiveNetwork();
-        if (activeNetwork == null) {
-            return getAnyNonVpnNetworkDns(connectivityManager);
-        } else if (isNotVpnNetwork(connectivityManager, activeNetwork)) {
+        if (activeNetwork != null && isInternetNetwork(connectivityManager, activeNetwork)) {
             Timber.d("Get DNS servers from active network %s", activeNetwork);
             return getNetworkDnsServers(connectivityManager, activeNetwork);
-        } else {
-            return getDnsFromNonVpnNetworkWithMatchingTransportType(connectivityManager, activeNetwork);
         }
+        // The active network is the VPN (or unknown): use the DNS servers of the network it runs on
+        List<InetAddress> underlyingDnsServers = getUnderlyingNetworkDnsServers(connectivityManager, activeNetwork);
+        if (!underlyingDnsServers.isEmpty()) {
+            return underlyingDnsServers;
+        }
+        // Last resort: any non VPN network providing internet access
+        return getAnyInternetNetworkDns(connectivityManager);
     }
 
     /**
-     * Check the DNS servers of the current networks differ from the mapped ones.<br>
-     * It is used to detect a network change which requires a new VPN configuration to re-map DNS.
+     * Update the DNS server mapping from the current network, without re-establishing the VPN.
+     * <p>
+     * The fake DNS addresses registered to the system are kept, only the original servers they
+     * forward to are updated. It avoids restarting the tunnel (and interrupting DNS) when the
+     * underlying network DNS servers change.
      *
      * @param context The application context.
-     * @return {@code true} if the network DNS servers changed and should be re-mapped.
+     * @return {@code true} if the mapping changed, {@code false} otherwise.
      */
-    public boolean hasDnsServersChanged(Context context) {
-        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(CONNECTIVITY_SERVICE);
-        // Collect the DNS servers of every non VPN network providing internet access
-        List<InetAddress> networkDnsServers = new ArrayList<>();
-        for (Network network : connectivityManager.getAllNetworks()) {
-            NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
-            if (networkCapabilities != null
-                    && !networkCapabilities.hasTransport(TRANSPORT_VPN)
-                    && networkCapabilities.hasCapability(NET_CAPABILITY_INTERNET)) {
-                networkDnsServers.addAll(getNetworkDnsServers(connectivityManager, network));
-            }
-        }
-        if (networkDnsServers.isEmpty()) {
+    public boolean remapDnsServers(Context context) {
+        List<InetAddress> newDnsServers = getMappedDnsServers(context);
+        int mappedCount = this.dnsServers.size();
+        // Nothing to update if there is no network or the VPN is not configured yet
+        if (newDnsServers.isEmpty() || mappedCount == 0) {
             return false;
         }
-        // Check every mapped DNS server is still provided by a current network
-        for (InetAddress dnsServer : this.dnsServers) {
-            if (!networkDnsServers.contains(dnsServer)) {
-                return true;
-            }
+        // Keep the same number of entries as the fake DNS addresses registered to the system
+        List<InetAddress> remappedDnsServers = new ArrayList<>(mappedCount);
+        for (int index = 0; index < mappedCount; index++) {
+            int serverIndex = Math.min(index, newDnsServers.size() - 1);
+            remappedDnsServers.add(newDnsServers.get(serverIndex));
         }
-        return false;
+        if (new HashSet<>(remappedDnsServers).equals(new HashSet<>(this.dnsServers))) {
+            return false;
+        }
+        this.dnsServers.clear();
+        this.dnsServers.addAll(remappedDnsServers);
+        return true;
     }
 
     /**
@@ -228,57 +251,81 @@ public class DnsServerMapper {
     }
 
     /**
-     * Get the DNS server addresses of any network without VPN capability.
+     * Get the DNS server addresses of the network the VPN runs on.
+     * <p>
+     * A non VPN network providing internet access is picked, preferably with the same transport as
+     * the VPN. Networks without internet access (e.g. an IMS only cellular network) are never used.
+     *
+     * @param connectivityManager The connectivity manager.
+     * @param vpnNetwork          The active VPN network (<code>null</code> if unknown).
+     * @return The DNS server addresses, an empty collection if no applicable DNS server found.
+     */
+    private List<InetAddress> getUnderlyingNetworkDnsServers(ConnectivityManager connectivityManager, Network vpnNetwork) {
+        // Fall back to a non VPN network providing internet access, preferring the VPN transport
+        int transport = getTransport(connectivityManager, vpnNetwork);
+        List<InetAddress> fallback = emptyList();
+        for (Network network : connectivityManager.getAllNetworks()) {
+            NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
+            if (networkCapabilities == null
+                    || networkCapabilities.hasTransport(TRANSPORT_VPN)
+                    || !networkCapabilities.hasCapability(NET_CAPABILITY_INTERNET)) {
+                continue;
+            }
+            List<InetAddress> dnsServers = getNetworkDnsServers(connectivityManager, network);
+            if (dnsServers.isEmpty()) {
+                continue;
+            }
+            if (transport != -1 && networkCapabilities.hasTransport(transport)) {
+                Timber.d("Get DNS servers from non VPN matching type network %s", network);
+                return dnsServers;
+            }
+            if (fallback.isEmpty()) {
+                fallback = dnsServers;
+            }
+        }
+        return fallback;
+    }
+
+    /**
+     * Get the transport type of a network.
+     *
+     * @param connectivityManager The connectivity manager.
+     * @param network             The network to get the transport type (<code>null</code> for none).
+     * @return The transport type, <code>-1</code> if unknown.
+     */
+    private int getTransport(ConnectivityManager connectivityManager, Network network) {
+        if (network == null) {
+            return -1;
+        }
+        NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
+        if (networkCapabilities == null) {
+            return -1;
+        }
+        if (networkCapabilities.hasTransport(TRANSPORT_CELLULAR)) {
+            return TRANSPORT_CELLULAR;
+        }
+        if (networkCapabilities.hasTransport(TRANSPORT_WIFI)) {
+            return TRANSPORT_WIFI;
+        }
+        return -1;
+    }
+
+    /**
+     * Get the DNS server addresses of any non VPN network providing internet access.
      *
      * @param connectivityManager The connectivity manager.
      * @return The DNS server addresses, an empty collection if no applicable DNS server found.
      */
-    private List<InetAddress> getAnyNonVpnNetworkDns(ConnectivityManager connectivityManager) {
+    private List<InetAddress> getAnyInternetNetworkDns(ConnectivityManager connectivityManager) {
         for (Network network : connectivityManager.getAllNetworks()) {
-            if (isNotVpnNetwork(connectivityManager, network)) {
+            NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
+            if (networkCapabilities != null
+                    && !networkCapabilities.hasTransport(TRANSPORT_VPN)
+                    && networkCapabilities.hasCapability(NET_CAPABILITY_INTERNET)) {
                 List<InetAddress> dnsServers = getNetworkDnsServers(connectivityManager, network);
                 if (!dnsServers.isEmpty()) {
                     Timber.d("Get DNS servers from non VPN network %s", network);
                     return dnsServers;
-                }
-            }
-        }
-        return emptyList();
-    }
-
-    /**
-     * Get the DNS server addresses of a network with the same transport type as the active network except VPN.
-     *
-     * @param connectivityManager The connectivity manager.
-     * @param activeNetwork       The active network to filter similar transport type.
-     * @return The DNS server addresses, an empty collection if no applicable DNS server found.
-     */
-    private List<InetAddress> getDnsFromNonVpnNetworkWithMatchingTransportType(
-            ConnectivityManager connectivityManager,
-            Network activeNetwork
-    ) {
-        // Get active network transport
-        NetworkCapabilities activeNetworkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
-        if (activeNetworkCapabilities == null) {
-            return emptyList();
-        }
-        int activeNetworkTransport = -1;
-        if (activeNetworkCapabilities.hasTransport(TRANSPORT_CELLULAR)) {
-            activeNetworkTransport = TRANSPORT_CELLULAR;
-        } else if (activeNetworkCapabilities.hasTransport(TRANSPORT_WIFI)) {
-            activeNetworkTransport = TRANSPORT_WIFI;
-        }
-        // Check all network to find one without VPN and matching transport
-        for (Network network : connectivityManager.getAllNetworks()) {
-            NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
-            if (networkCapabilities == null) {
-                continue;
-            }
-            if (networkCapabilities.hasTransport(activeNetworkTransport) && !networkCapabilities.hasTransport(TRANSPORT_VPN)) {
-                List<InetAddress> dns = getNetworkDnsServers(connectivityManager, network);
-                if (!dns.isEmpty()) {
-                    Timber.d("Get DNS servers from non VPN matching type network %s", network);
-                    return dns;
                 }
             }
         }
@@ -301,18 +348,20 @@ public class DnsServerMapper {
     }
 
     /**
-     * Check a network does not have VPN transport.
+     * Check a network provides internet access and is not a VPN.
      *
      * @param connectivityManager The connectivity manager.
      * @param network             The network to check.
-     * @return <code>true</code> if a network is not a VPN, <code>false</code> otherwise.
+     * @return <code>true</code> if a network provides internet access without VPN, <code>false</code> otherwise.
      */
-    private boolean isNotVpnNetwork(ConnectivityManager connectivityManager, Network network) {
+    private boolean isInternetNetwork(ConnectivityManager connectivityManager, Network network) {
         if (network == null) {
             return false;
         }
         NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
-        return networkCapabilities != null && !networkCapabilities.hasTransport(TRANSPORT_VPN);
+        return networkCapabilities != null
+                && !networkCapabilities.hasTransport(TRANSPORT_VPN)
+                && networkCapabilities.hasCapability(NET_CAPABILITY_INTERNET);
     }
 
     /**
