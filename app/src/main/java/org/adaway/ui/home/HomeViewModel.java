@@ -1,6 +1,16 @@
 package org.adaway.ui.home;
 
+import static android.content.Context.CONNECTIVITY_SERVICE;
+import static android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET;
+import static android.net.NetworkCapabilities.TRANSPORT_CELLULAR;
+import static android.net.NetworkCapabilities.TRANSPORT_VPN;
+import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
+
 import android.app.Application;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -25,6 +35,9 @@ import org.adaway.util.DateTimeUtils;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import timber.log.Timber;
 
@@ -46,6 +59,11 @@ public class HomeViewModel extends AndroidViewModel {
     private final MutableLiveData<Boolean> pending;
     private final MediatorLiveData<String> state;
     private final MutableLiveData<HostError> error;
+    private final MutableLiveData<Boolean> networkAvailable;
+    private final Set<Network> availableNetworks;
+    private final ConnectivityManager connectivityManager;
+    private final ConnectivityManager.NetworkCallback networkCallback;
+    private boolean networkCallbackRegistered;
 
     public HomeViewModel(@NonNull Application application) {
         super(application);
@@ -63,6 +81,52 @@ public class HomeViewModel extends AndroidViewModel {
         this.state.addSource(this.sourceModel.getState(), this.state::setValue);
         this.state.addSource(this.adBlockModel.getState(), this.state::setValue);
         this.error = new MutableLiveData<>();
+
+        // Track the underlying networks to report whether a network is available
+        this.networkAvailable = new MutableLiveData<>(true);
+        this.availableNetworks = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        this.connectivityManager = (ConnectivityManager) application.getSystemService(CONNECTIVITY_SERVICE);
+        NetworkRequest networkRequest = new NetworkRequest.Builder()
+                .addCapability(NET_CAPABILITY_INTERNET)
+                .addTransportType(TRANSPORT_WIFI)
+                .addTransportType(TRANSPORT_CELLULAR)
+                .build();
+        this.networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                HomeViewModel.this.availableNetworks.add(network);
+                HomeViewModel.this.updateNetworkAvailable();
+            }
+
+            @Override
+            public void onLost(@NonNull Network network) {
+                HomeViewModel.this.availableNetworks.remove(network);
+                HomeViewModel.this.updateNetworkAvailable();
+            }
+
+            @Override
+            public void onUnavailable() {
+                HomeViewModel.this.updateNetworkAvailable();
+            }
+        };
+        try {
+            this.connectivityManager.registerNetworkCallback(networkRequest, this.networkCallback);
+            this.networkCallbackRegistered = true;
+        } catch (RuntimeException e) {
+            // Keep the initial availability computed from the current networks
+            Timber.w(e, "Failed to register the network callback.");
+        }
+        // Initialize the availability from the current networks: the callback only reports changes
+        for (Network network : this.connectivityManager.getAllNetworks()) {
+            NetworkCapabilities capabilities = this.connectivityManager.getNetworkCapabilities(network);
+            if (capabilities != null
+                    && capabilities.hasCapability(NET_CAPABILITY_INTERNET)
+                    && !capabilities.hasTransport(TRANSPORT_VPN)
+                    && (capabilities.hasTransport(TRANSPORT_WIFI) || capabilities.hasTransport(TRANSPORT_CELLULAR))) {
+                this.availableNetworks.add(network);
+            }
+        }
+        updateNetworkAvailable();
     }
 
     private static boolean isTrue(LiveData<Boolean> liveData) {
@@ -72,6 +136,19 @@ public class HomeViewModel extends AndroidViewModel {
 
     public LiveData<Boolean> isAdBlocked() {
         return this.adBlockModel.isApplied();
+    }
+
+    /**
+     * Get whether a network is available.
+     *
+     * @return {@code true} if a network is available, {@code false} otherwise.
+     */
+    public LiveData<Boolean> isNetworkAvailable() {
+        return this.networkAvailable;
+    }
+
+    private void updateNetworkAvailable() {
+        this.networkAvailable.postValue(!this.availableNetworks.isEmpty());
     }
 
     public LiveData<Boolean> isUpdateAvailable() {
@@ -202,5 +279,13 @@ public class HomeViewModel extends AndroidViewModel {
                 sync();
             }
         });
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        if (this.networkCallbackRegistered) {
+            this.connectivityManager.unregisterNetworkCallback(this.networkCallback);
+        }
     }
 }

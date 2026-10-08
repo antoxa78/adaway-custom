@@ -2,6 +2,8 @@ package org.adaway.ui.home;
 
 import static org.adaway.model.adblocking.AdBlockMethod.UNDEFINED;
 import static org.adaway.model.adblocking.AdBlockMethod.VPN;
+import static org.adaway.model.error.HostError.NO_CONNECTION;
+import static org.adaway.ui.Animations.hideView;
 import static org.adaway.ui.Animations.removeView;
 import static org.adaway.ui.Animations.showView;
 import static org.adaway.ui.lists.ListsActivity.ALLOWED_HOSTS_TAB;
@@ -10,7 +12,9 @@ import static org.adaway.ui.lists.ListsActivity.REDIRECTED_HOSTS_TAB;
 import static org.adaway.ui.lists.ListsActivity.TAB;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.VpnService;
 import android.os.Bundle;
@@ -21,6 +25,9 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.ColorUtils;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModelProvider;
@@ -64,6 +71,12 @@ public class HomeActivity extends AppCompatActivity {
     private HomeActivityBinding binding;
     private HomeViewModel homeViewModel;
     private ActivityResultLauncher<Intent> prepareVpnLauncher;
+    private boolean adBlockedState;
+    private boolean adBlockStateKnown;
+    private boolean networkAvailable = true;
+    private int headerTextDefaultColor;
+    private ColorStateList drawerButtonDefaultTint;
+    private ColorStateList statusDotDefaultTint;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -73,9 +86,14 @@ public class HomeActivity extends AppCompatActivity {
         Timber.i("Starting main activity");
         this.binding = HomeActivityBinding.inflate(getLayoutInflater());
         setContentView(this.binding.getRoot());
+        // Capture the header content colors to restore them over the warning (yellow) background
+        this.headerTextDefaultColor = this.binding.content.appNameTextView.getCurrentTextColor();
+        this.drawerButtonDefaultTint = this.binding.content.homeDrawerButton.getImageTintList();
+        this.statusDotDefaultTint = this.binding.content.adBlockStatusTextView.getCompoundDrawableTintList();
 
         this.homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
         this.homeViewModel.isAdBlocked().observe(this, this::notifyAdBlocked);
+        this.homeViewModel.isNetworkAvailable().observe(this, this::notifyNetworkAvailable);
         this.homeViewModel.getError().observe(this, this::notifyError);
 
         applyActionBar();
@@ -174,7 +192,8 @@ public class HomeActivity extends AppCompatActivity {
         if (PreferenceHelper.isStartupPermissionPrompted(this)) {
             return;
         }
-        if (PreferenceHelper.getAdBlockMethod(this) == UNDEFINED) {
+        // The prompt is about the VPN ad blocker: battery optimization and start on boot
+        if (PreferenceHelper.getAdBlockMethod(this) != VPN) {
             return;
         }
         PreferenceHelper.setStartupPermissionPrompted(this, true);
@@ -349,26 +368,75 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void notifyAdBlocked(boolean adBlocked) {
-        // Status color: green when ad blocking is running, red when stopped
-        int color = getColor(adBlocked ? R.color.adblock_active : R.color.adblock_stopped);
-        // Header background indicates the ad blocking state, the status bar continues it
+        this.adBlockedState = adBlocked;
+        this.adBlockStateKnown = true;
+        updateHomeStatus();
+    }
+
+    private void notifyNetworkAvailable(boolean available) {
+        this.networkAvailable = available;
+        updateHomeStatus();
+    }
+
+    private void updateHomeStatus() {
+        // Nothing to display until the ad blocking state is known, so no "stopped" state is
+        // flashed at startup while the VPN status is still being read.
+        if (!this.adBlockStateKnown) {
+            return;
+        }
+        boolean noNetwork = this.adBlockedState && !this.networkAvailable;
+        // Header background: green when running, yellow when running without a network, red when stopped
+        int color = getColor(!this.adBlockedState
+                ? R.color.adblock_stopped
+                : (this.networkAvailable ? R.color.adblock_active : R.color.adblock_no_network));
         this.binding.content.headerFrameLayout.setBackgroundColor(color);
-        getWindow().setStatusBarColor(color);
+        setStatusBarColor(color);
+        // Keep the header content readable on the yellow warning background
+        int headerContentColor = noNetwork ? Color.BLACK : this.headerTextDefaultColor;
+        this.binding.content.appNameTextView.setTextColor(headerContentColor);
+        this.binding.content.appDescriptionTextView.setTextColor(headerContentColor);
+        this.binding.content.adBlockStatusTextView.setTextColor(headerContentColor);
+        this.binding.content.adBlockStatusTextView.setCompoundDrawableTintList(noNetwork
+                ? ColorStateList.valueOf(Color.BLACK)
+                : this.statusDotDefaultTint);
+        this.binding.content.homeDrawerButton.setImageTintList(noNetwork
+                ? ColorStateList.valueOf(Color.BLACK)
+                : this.drawerButtonDefaultTint);
         // Update the start/stop button icon and description
-        this.binding.fab.setImageResource(adBlocked ? R.drawable.ic_stop_24dp : R.drawable.ic_start_24dp);
+        this.binding.fab.setImageResource(this.adBlockedState ? R.drawable.ic_stop_24dp : R.drawable.ic_start_24dp);
         this.binding.fab.setContentDescription(getString(
-                adBlocked ? R.string.adblock_stop_button_description : R.string.adblock_start_button_description
+                this.adBlockedState ? R.string.adblock_stop_button_description : R.string.adblock_start_button_description
         ));
         // Update the status shown in the header (its colors follow the header)
         TextView statusTextView = this.binding.content.adBlockStatusTextView;
-        statusTextView.setText(adBlocked ? R.string.adblock_status_running : R.string.adblock_status_stopped);
+        statusTextView.setText(this.adBlockedState ? R.string.adblock_status_running : R.string.adblock_status_stopped);
         // Hidden until the state is known, so no empty status is shown at startup
         statusTextView.setVisibility(View.VISIBLE);
+        // Display the network warning under the ad blocking status
+        if (noNetwork) {
+            this.binding.content.networkStatusTextView.setTextColor(headerContentColor);
+            showView(this.binding.content.networkStatusTextView);
+        } else {
+            hideView(this.binding.content.networkStatusTextView);
+        }
+    }
+
+    private void setStatusBarColor(int color) {
+        getWindow().setStatusBarColor(color);
+        // Pick dark or light status bar icons according to the bar background, so the clock and
+        // battery stay readable on the yellow warning bar too.
+        boolean darkIcons = ColorUtils.calculateLuminance(color) > 0.4;
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        controller.setAppearanceLightStatusBars(darkIcons);
     }
 
     private void notifyError(HostError error) {
         removeView(this.binding.content.stateTextView);
         if (error == null) {
+            return;
+        }
+        // The no connection error is displayed inline in the header instead of a blocking dialog
+        if (error == NO_CONNECTION && !this.networkAvailable) {
             return;
         }
 

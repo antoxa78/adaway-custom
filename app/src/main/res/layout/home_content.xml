@@ -108,12 +108,32 @@
             tools:text="@string/adblock_status_running"
             tools:visibility="visible" />
 
+        <!-- Network warning, displayed under the ad blocking status when offline -->
+        <TextView
+            android:id="@+id/networkStatusTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:accessibilityLiveRegion="polite"
+            android:text="@string/network_unavailable_message"
+            android:textAppearance="?attr/textAppearanceBody2"
+            android:textColor="@color/adblock_no_network_text"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintEnd_toEndOf="@+id/appNameTextView"
+            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintStart_toStartOf="@+id/appNameTextView"
+            app:layout_constraintTop_toBottomOf="@+id/adBlockStatusTextView"
+            tools:text="No network connection"
+            tools:visibility="visible" />
+
         <androidx.constraintlayout.widget.Barrier
             android:id="@+id/headerContentBarrier"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:barrierDirection="bottom"
-            app:constraint_referenced_ids="logoImageView,adBlockStatusTextView" />
+            app:constraint_referenced_ids="logoImageView,adBlockStatusTextView,networkStatusTextView" />
 
         <!-- Room in the header for the upper half of the counter cards and their badges -->
         <Space
@@ -129,8 +149,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
             app:contentPaddingBottom="16dp"
             app:contentPaddingLeft="8dp"
             app:contentPaddingRight="8dp"
@@ -206,8 +226,8 @@
             android:id="@+id/allowedHostCardView"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
             app:contentPaddingBottom="16dp"
             app:contentPaddingLeft="8dp"
             app:contentPaddingRight="8dp"

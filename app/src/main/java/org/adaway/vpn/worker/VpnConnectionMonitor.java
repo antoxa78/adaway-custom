@@ -6,6 +6,7 @@ import static java.util.Objects.requireNonNull;
 import android.content.Context;
 
 import org.adaway.vpn.VpnServiceControls;
+import org.adaway.vpn.dns.DnsServerMapper;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -37,6 +38,10 @@ public class VpnConnectionMonitor {
      * It is set by the worker thread and read by the monitor thread.
      */
     private volatile NetworkInterface networkInterface;
+    /**
+     * The DNS server mapper to detect network DNS changes (<code>null</code> if not initialized).
+     */
+    private volatile DnsServerMapper dnsServerMapper;
 
     /**
      * Constructor.
@@ -47,6 +52,7 @@ public class VpnConnectionMonitor {
         this.context = context;
         this.running = new AtomicBoolean(true);
         this.networkInterface = null;
+        this.dnsServerMapper = null;
     }
 
     private static NetworkInterface findVpnNetworkInterface() {
@@ -90,10 +96,13 @@ public class VpnConnectionMonitor {
 
     /**
      * Initialize the monitor once the VPN connection is up.
+     *
+     * @param dnsServerMapper The DNS server mapper used to detect network DNS changes.
      */
-    void initialize() {
+    void initialize(DnsServerMapper dnsServerMapper) {
         Timber.d("Initializing connection monitor…");
         this.networkInterface = findVpnNetworkInterface();
+        this.dnsServerMapper = dnsServerMapper;
         Timber.d("Connection monitor initialized to watch interface %s.", this.networkInterface.getName());
     }
 
@@ -111,6 +120,14 @@ public class VpnConnectionMonitor {
                     Timber.i("VPN network interface %s is down. Restarting VPN service…",
                             monitoredInterface.getName());
                     // Use restart, not start: the service is still running, only its tunnel is dead
+                    VpnServiceControls.restart(this.context);
+                }
+                // Re-map DNS servers when the underlying network changed them: forwarding DNS to a
+                // stale (unreachable) server silently times out and makes the device look offline.
+                DnsServerMapper dnsMapper = this.dnsServerMapper;
+                if (dnsMapper != null && dnsMapper.hasDnsServersChanged(this.context)) {
+                    stop();
+                    Timber.i("Network DNS servers changed. Restarting VPN service to re-map them…");
                     VpnServiceControls.restart(this.context);
                 }
                 try {
@@ -135,6 +152,7 @@ public class VpnConnectionMonitor {
      */
     void reset() {
         this.networkInterface = null;
+        this.dnsServerMapper = null;
     }
 
     /**

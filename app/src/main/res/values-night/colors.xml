@@ -14,6 +14,8 @@
     <color name="notification">#FFFFFFFF</color>
     <color name="adblock_active">#FF81C784</color>
     <color name="adblock_stopped">#FFEF9A9A</color>
+    <color name="adblock_no_network">#FFFFC107</color>
+    <color name="adblock_no_network_text">#FF212121</color>
     <color name="adblock_pending">#FFFFB74D</color>
     <color name="log_recording">#FFEF5350</color>
 </resources>

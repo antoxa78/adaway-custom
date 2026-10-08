@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material theming light theme (black and white) -->
-    <color name="primary">#FF000000</color>
-    <color name="primaryVariant">#FF212121</color>
+    <!-- Material theming light theme (modern slate / charcoal) -->
+    <color name="primary">#FF121212</color>
+    <color name="primaryVariant">#FF1F1F1F</color>
     <color name="onPrimary">#FFFFFFFF</color>
-    <color name="secondary">#FF000000</color>
-    <color name="secondaryVariant">#FF212121</color>
+    <color name="secondary">#FF3B82F6</color>
+    <color name="secondaryVariant">#FF1D4ED8</color>
     <color name="onSecondary">#FFFFFFFF</color>
     <!-- App icon colors -->
     <color name="drawer_icon">#FF000000</color>
@@ -25,8 +25,10 @@
     <!-- Notifications -->
     <color name="notification">#FF212121</color>
     <!-- Ad blocking state -->
-    <color name="adblock_active">#FF2E7D32</color>
-    <color name="adblock_stopped">#FFC62828</color>
+    <color name="adblock_active">#FF10B981</color>
+    <color name="adblock_stopped">#FFEF4444</color>
+    <color name="adblock_no_network">#FFF59E0B</color>
+    <color name="adblock_no_network_text">#FF212121</color>
     <!-- While starting, reconnecting or waiting for a network -->
     <color name="adblock_pending">#FFA15C00</color>
     <!-- Translucent background of the status pill shown on the colored home header -->

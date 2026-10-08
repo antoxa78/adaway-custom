@@ -1,6 +1,7 @@
 package org.adaway.vpn.dns;
 
 import static android.content.Context.CONNECTIVITY_SERVICE;
+import static android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET;
 import static android.net.NetworkCapabilities.TRANSPORT_CELLULAR;
 import static android.net.NetworkCapabilities.TRANSPORT_VPN;
 import static android.net.NetworkCapabilities.TRANSPORT_WIFI;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 import timber.log.Timber;
@@ -66,7 +68,9 @@ public class DnsServerMapper {
      * Constructor.
      */
     public DnsServerMapper() {
-        this.dnsServers = new ArrayList<>();
+        // Copy-on-write: the list is written by the worker thread while the connection monitor
+        // thread reads it to detect network DNS changes.
+        this.dnsServers = new CopyOnWriteArrayList<>();
         this.defaultDnsServerAlias = null;
     }
 
@@ -161,6 +165,37 @@ public class DnsServerMapper {
         } else {
             return getDnsFromNonVpnNetworkWithMatchingTransportType(connectivityManager, activeNetwork);
         }
+    }
+
+    /**
+     * Check the DNS servers of the current networks differ from the mapped ones.<br>
+     * It is used to detect a network change which requires a new VPN configuration to re-map DNS.
+     *
+     * @param context The application context.
+     * @return {@code true} if the network DNS servers changed and should be re-mapped.
+     */
+    public boolean hasDnsServersChanged(Context context) {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(CONNECTIVITY_SERVICE);
+        // Collect the DNS servers of every non VPN network providing internet access
+        List<InetAddress> networkDnsServers = new ArrayList<>();
+        for (Network network : connectivityManager.getAllNetworks()) {
+            NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(network);
+            if (networkCapabilities != null
+                    && !networkCapabilities.hasTransport(TRANSPORT_VPN)
+                    && networkCapabilities.hasCapability(NET_CAPABILITY_INTERNET)) {
+                networkDnsServers.addAll(getNetworkDnsServers(connectivityManager, network));
+            }
+        }
+        if (networkDnsServers.isEmpty()) {
+            return false;
+        }
+        // Check every mapped DNS server is still provided by a current network
+        for (InetAddress dnsServer : this.dnsServers) {
+            if (!networkDnsServers.contains(dnsServer)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

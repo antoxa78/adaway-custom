@@ -42,6 +42,7 @@
     <string name="adblock_stop_button_description">Stop ad blocking</string>
     <string name="adblock_status_running">Ad blocking is running</string>
     <string name="adblock_status_stopped">Ad blocking is stopped</string>
+    <string name="network_unavailable_message">No network connection</string>
     <string name="update_button">Update blocked domains</string>
     <string name="show_log_button">Show requested domains</string>
 

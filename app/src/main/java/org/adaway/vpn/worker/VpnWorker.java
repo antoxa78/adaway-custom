@@ -228,7 +228,7 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
             // Store reference to network interface to close it externally on demand
             this.vpnNetworkInterface.set(pfd);
             // Initialize connection monitor
-            this.connectionMonitor.initialize();
+            this.connectionMonitor.initialize(this.dnsServerMapper);
 
             // Probe the fake DNS server address: it is routed into the tunnel, so a healthy tunnel
             // always hands the probe back to this worker (see VpnWatchdog)
