@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Усталёўка hosts</string>
     <string name="pref_root_open_hosts">Адкрыць файл hosts</string>
-    <string name="pref_apply_method">Шлях да файла hosts</string>
-    <string name="pref_apply_method_summary">Прачытайце даведку перад выкарыстаннем гэтай магчымасці</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Карыстацкія налады</item>
-    </string-array>
-    <string name="pref_custom_target">Карыстацкае мэтавае размяшчэнне</string>
     <string name="pref_never_reboot">Схаваць дыялог перазагрузкі пасля прымянення</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Перанакіраванне</string>

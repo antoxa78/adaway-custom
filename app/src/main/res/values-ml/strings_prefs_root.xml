@@ -4,13 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">hosts ഇൻസ്റ്റാൾ ചെയുന്നു </string>
     <string name="pref_root_open_hosts">Open hosts file</string>
-    <string name="pref_apply_method">ടാർഗെറ്റ് ഹോസ്റ്റസ് ഫയൽ</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Custom target</item>
-    </string-array>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">റീഡയറക്ഷൻ</string>
     <string name="pref_redirection_ipv4">റീഡയറക്ഷൻ IPv4</string>

@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Instalar hosts</string>
     <string name="pref_root_open_hosts">Abrir ficheiro de hosts</string>
-    <string name="pref_apply_method">Ficheiro de hosts de destino</string>
-    <string name="pref_apply_method_summary">Lê a Ajuda antes de usar esta funcionalidade</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Destino personalizado</item>
-    </string-array>
-    <string name="pref_custom_target">Localização do destino personalizado</string>
     <string name="pref_never_reboot">Ocultar diálogo de reinício após aplicação</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Redirecionamento </string>

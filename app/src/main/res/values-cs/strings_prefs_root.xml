@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Instalace hostitelů</string>
     <string name="pref_root_open_hosts">Otevřít soubor hostitelů</string>
-    <string name="pref_apply_method">Cílový soubor hostitelů</string>
-    <string name="pref_apply_method_summary">Před používáním této funkce si přečtěte nápovědu</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Vlastní cíl</item>
-    </string-array>
-    <string name="pref_custom_target">Umístění vlastního cíle</string>
     <string name="pref_never_reboot">Skrýt dialogové okno restartu po aplikování</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Přesměrování</string>

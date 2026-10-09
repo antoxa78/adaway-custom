@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Namesti gostitelje</string>
     <string name="pref_root_open_hosts">Odpri hosts datoteko</string>
-    <string name="pref_apply_method">Uporabljena hosts datoteka</string>
-    <string name="pref_apply_method_summary">Pred uporabo te funkcije preberite pomoč</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Cilj po meri</item>
-    </string-array>
-    <string name="pref_custom_target">Ciljno mesto po meri</string>
     <string name="pref_never_reboot">Po uporabi skrij pogovorno okno za ponovni zagon </string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Preusmeritev</string>

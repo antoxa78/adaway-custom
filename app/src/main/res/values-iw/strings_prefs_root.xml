@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">התקנת מארחים</string>
     <string name="pref_root_open_hosts">פתח קובץ מארחים</string>
-    <string name="pref_apply_method">יעד קובץ מארחים</string>
-    <string name="pref_apply_method_summary">לפני שימושש בהגדרה זו, יש לקרוא אודותיה</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>יעד מותאם אישית</item>
-    </string-array>
-    <string name="pref_custom_target">מיקום יעד מותאם אישית</string>
     <string name="pref_never_reboot">הסתרת תיבת דו שיח אודות אתחול לאחר הגדרה</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">הפניה</string>

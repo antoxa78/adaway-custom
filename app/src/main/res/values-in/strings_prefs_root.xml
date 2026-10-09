@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Install hosts</string>
     <string name="pref_root_open_hosts">Buka berkas hosts</string>
-    <string name="pref_apply_method">Target file host</string>
-    <string name="pref_apply_method_summary">Sebelum mengganti pengaturan. Baca panduan untuk fungsi tersebut.</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Kustom target</item>
-    </string-array>
-    <string name="pref_custom_target">Kustom target</string>
     <string name="pref_never_reboot">Sembunyikan pesan reboot</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Pengalihan</string>

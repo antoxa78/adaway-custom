@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Inštalácia hosts</string>
     <string name="pref_root_open_hosts">Otvoriť súbor hosts</string>
-    <string name="pref_apply_method">Umiestnenie hosts súboru</string>
-    <string name="pref_apply_method_summary">Pre použitím tejto funkcie si prečítajte pomocníka</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Vlastné umiestnenie</item>
-    </string-array>
-    <string name="pref_custom_target">Vlastné umiestnenie</string>
     <string name="pref_never_reboot">Po aplikovaní skryť dialógové okno reštartu</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Presmerovania</string>

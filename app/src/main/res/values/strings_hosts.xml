@@ -7,7 +7,6 @@
     <string name="hosts_stevenblack_source">StevenBlack Unified hosts</string>
     <string name="hosts_peterlowe_source">Pete Lowe blocklist hosts</string>
     <!-- List -->
-    <string name="hosts_not_available">not available</string>
     <string name="hosts_count">%s hosts</string>
     <string name="hosts_sources_apply">Apply</string>
     <string name="hosts_restore_defaults">Restore default lists</string>
@@ -48,7 +47,4 @@
     <string name="catalog_source_china_description">Chinese regional ads combined with the global EasyList.</string>
     <!-- Edition dialog -->
     <string name="hosts_add_dialog_title">Add source</string>
-    <string name="hosts_edit_dialog_title">Edit source</string>
-    <string name="hosts_dialog_url">URL: (a https:// or file:// resource)</string>
-    <string name="hosts_dialog_url_hint">The hosts source URL</string>
 </resources>

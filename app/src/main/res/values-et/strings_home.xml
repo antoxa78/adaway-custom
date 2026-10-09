@@ -17,18 +17,14 @@
     </plurals>
 
     <!-- Help card -->
-    <string name="help_label">Kuva abi</string>
 
     <!-- Project card -->
-    <string name="project_label">Ava GitHubi leht</string>
 
     <!-- Support card -->
-    <string name="support_label">Toeta projekti</string>
 
     <!-- App bar drawer -->
     <string name="preferences_drawer_item">Eelistused</string>
 
-    <string name="adblock_pause_button_description">Peata/jätka reklaamiblokeerimist</string>
     <!-- Error dialog -->
     <string name="error_dialog_help">Palun loe abi rohkema teabe saamiseks.</string>
 

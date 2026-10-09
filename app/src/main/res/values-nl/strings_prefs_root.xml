@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Host installeren</string>
     <string name="pref_root_open_hosts">Hosts-bestand openen</string>
-    <string name="pref_apply_method">Locatie van hosts-bestand</string>
-    <string name="pref_apply_method_summary">Lees Help voordat je deze functie gebruikt</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Aangepaste locatie</item>
-    </string-array>
-    <string name="pref_custom_target">Aangepaste doellocatie</string>
     <string name="pref_never_reboot">Verberg herstart dialoogscherm</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Doorverwijzing</string>

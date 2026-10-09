@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Installation de fichier hosts</string>
     <string name="pref_root_open_hosts">Ouvrir le fichier hosts</string>
-    <string name="pref_apply_method">Fichier hosts cible</string>
-    <string name="pref_apply_method_summary">Consultez l’aide avant d’utiliser cette fonction</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Cible personnalisée</item>
-    </string-array>
-    <string name="pref_custom_target">Emplacement de la cible personnalisée</string>
     <string name="pref_never_reboot">Cacher le message de redémarrage après application</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Redirection</string>

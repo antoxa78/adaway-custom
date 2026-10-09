@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">نصب Hosts</string>
     <string name="pref_root_open_hosts">باز کردن فایل hosts</string>
-    <string name="pref_apply_method">هدف فایل hosts</string>
-    <string name="pref_apply_method_summary">قبل از استفاده از این ویژگی راهنما را بخوانید</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>هدف سفارشی</item>
-    </string-array>
-    <string name="pref_custom_target">مکان هدف سفارشی</string>
     <string name="pref_never_reboot">مخفی کردن گفتگوی خاموش و روشن کردن گوشی بعد از انجام</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">تغییر مسیر</string>

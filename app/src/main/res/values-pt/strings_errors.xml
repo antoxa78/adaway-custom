@@ -4,7 +4,6 @@
     <string name="error_no_connection_message">Sem ligação à Internet</string>
     <string name="error_no_connection_details">Não é possível estabelecer a ligação à Internet. Por favor, verifique a conetividade do seu dispositivo.</string>
     <string name="error_download_failed_message">Não foi possível transferir da fonte de anfitriões</string>
-    <string name="error_download_failed_details">Nenhuma das fontes de anfitriões ativadas está acessível. Por favor, verifique se está corretamente ligado à Internet.</string>
     <!-- Hosts install model error -->
     <string name="error_private_file_failed_message">Não foi possível criar o ficheiro privado</string>
     <string name="error_private_file_failed_details">Não foi possível criar um ficheiro privado para criar uma nova fonte de anfitriões. Por favor, verifique o espaço livre disponível no seu dispositivo.</string>

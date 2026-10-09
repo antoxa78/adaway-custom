@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">hosts安装</string>
     <string name="pref_root_open_hosts">打开 hosts 文件</string>
-    <string name="pref_apply_method">目标 hosts 文件</string>
-    <string name="pref_apply_method_summary">在更改此设置之前，请阅读有关此功能的帮助条目。</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>自定义路径</item>
-    </string-array>
-    <string name="pref_custom_target">自定义 hosts 文件路径</string>
     <string name="pref_never_reboot">隐藏重启对话框</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">重定向</string>

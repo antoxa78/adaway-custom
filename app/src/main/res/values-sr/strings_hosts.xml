@@ -2,5 +2,4 @@
 <resources>
     <string name="hosts_title">Host-ovi resursi</string>
     <!-- List -->
-    <string name="hosts_not_available">nije dostupno</string>
     </resources>

@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Hosts telepítése</string>
     <string name="pref_root_open_hosts">Hosts fájl megnyitása</string>
-    <string name="pref_apply_method">Cél hosts fájl</string>
-    <string name="pref_apply_method_summary">Ezen beállítás módosítása előtt olvassa el a Súgó vonatkozó fejezetét!</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Egyéni cél</item>
-    </string-array>
-    <string name="pref_custom_target">Egyéni cél</string>
     <string name="pref_never_reboot">Újraindítási ablak elrejtése</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Átirányítás</string>

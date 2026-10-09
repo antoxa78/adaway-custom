@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">تثبيت المضيفين</string>
     <string name="pref_root_open_hosts">فتح ملفات المضيف</string>
-    <string name="pref_apply_method">مسار ملفات المضيف</string>
-    <string name="pref_apply_method_summary">قبل تغيير هذا الإعداد، يجب قراءة التعليمات حول هذه الوظيفة.</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>مسار مخصص</item>
-    </string-array>
-    <string name="pref_custom_target">مسار مخصص</string>
     <string name="pref_never_reboot">إخفاء مُحاور إعادة التشغيل</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">إعادة التوجيه</string>

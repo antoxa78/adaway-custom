@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Instal·lació hosts</string>
     <string name="pref_root_open_hosts">Obriu el fitxer de hosts</string>
-    <string name="pref_apply_method">Fitxer hosts objectiu</string>
-    <string name="pref_apply_method_summary">Llegiu l\'ajuda abans d\'utilitzar aquesta funció</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Objectiu personalitzt</item>
-    </string-array>
-    <string name="pref_custom_target">Ubicació destí personalitzada</string>
     <string name="pref_never_reboot">Amaga el diàleg de reinici després d\'aplicar</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Redirecció</string>

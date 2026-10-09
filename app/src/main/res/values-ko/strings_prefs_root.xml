@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">호스트 설치</string>
     <string name="pref_root_open_hosts">호스트 파일 열기</string>
-    <string name="pref_apply_method">대상 호스트 파일</string>
-    <string name="pref_apply_method_summary">이 기능을 사용하기 전에 도움말을 읽으십시오</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>사용자 지정 대상</item>
-    </string-array>
-    <string name="pref_custom_target">사용자 지정 대상 위치</string>
     <string name="pref_never_reboot">적용 후 재부팅 대화상자 숨기기</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">리다이렉트</string>

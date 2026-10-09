@@ -19,26 +19,17 @@
     <string name="update_hosts_description">Atualizar hosts</string>
 
     <!-- Log card -->
-    <string name="log_label">Mostrar registro de solicitação de DNS</string>
 
     <!-- Help card -->
-    <string name="help_label">Mostrar ajuda\ne dicas</string>
 
     <!-- Project card -->
-    <string name="project_label">Abrir página do GitHub</string>
 
     <!-- Support card -->
-    <string name="support_label">Apoie o projeto</string>
 
     <!-- App bar drawer -->
-    <string name="github_project_drawer_item">Projeto GitHub</string>
     <string name="preferences_drawer_item">Preferências</string>
 
     <!-- App bar buttons -->
-    <string name="open_drawer_button_description">Abrir gaveta de navegação</string>
-    <string name="adblock_pause_button_description">Pausar/retomar ad bloqueador</string>
-    <string name="update_button">Atualizar domínios bloqueados</string>
-    <string name="show_log_button">Mostrar solicitações de domínios</string>
 
     <!-- Error dialog -->
     <string name="error_dialog_help">Consulte a Ajuda para mais informações.</string>

@@ -7,8 +7,6 @@
     <color name="secondary">#FF3B82F6</color>
     <color name="secondaryVariant">#FF1D4ED8</color>
     <color name="onSecondary">#FFFFFFFF</color>
-    <!-- App icon colors -->
-    <color name="drawer_icon">#FF000000</color>
     <!-- Host list state -->
     <color name="blocked">#FF212121</color>
     <color name="allowed">#FF616161</color>
@@ -16,7 +14,6 @@
     <!-- Common UI elements -->
     <color name="selected_background">#33000000</color>
     <color name="shortcut_background">#FFF5F5F5</color>
-    <color name="card_spacer">#3F000000</color>
     <!-- Cards -->
     <color name="cardBackground">#FF424242</color>
     <color name="cardEnabledBackground">#FF616161</color>

@@ -4,15 +4,6 @@
     <!-- Hosts install category -->
     <string name="pref_hosts_installation">Instalación de hosts</string>
     <string name="pref_root_open_hosts">Abrir el archivo hosts</string>
-    <string name="pref_apply_method">Ruta del archivo hosts</string>
-    <string name="pref_apply_method_summary">Antes de cambiar esta configuración, lea la Ayuda sobre esta funcionalidad.</string>
-    <string-array name="pref_apply_method_entries">
-        <item>/system/etc/hosts</item>
-        <item>/data/hosts</item>
-        <item>/data/data/hosts</item>
-        <item>Ruta personalizada</item>
-    </string-array>
-    <string name="pref_custom_target">Ruta personalizada</string>
     <string name="pref_never_reboot">Ocultar cuadro de diálogo de reinicio</string>
     <!-- Redirection category -->
     <string name="pref_hosts_redirection">Redirección</string>

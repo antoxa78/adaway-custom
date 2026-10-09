@@ -20,31 +20,22 @@
     <string name="home_sources_last_update">Last updated: %1$s</string>
 
     <!-- Log card -->
-    <string name="log_label">Show DNS request log</string>
 
     <!-- Help card -->
-    <string name="help_label">Show help\nand tips</string>
 
     <!-- Project card -->
-    <string name="project_label">Open GitHub page</string>
 
     <!-- Support card -->
-    <string name="support_label">Support the project</string>
 
     <!-- App bar drawer -->
-    <string name="github_project_drawer_item">GitHub project</string>
     <string name="preferences_drawer_item">Preferences</string>
 
     <!-- App bar buttons -->
-    <string name="open_drawer_button_description">Open navigation drawer</string>
-    <string name="adblock_pause_button_description">Pause/resume ad blocking</string>
     <string name="adblock_start_button_description">Start ad blocking</string>
     <string name="adblock_stop_button_description">Stop ad blocking</string>
     <string name="adblock_status_running">Ad blocking is running</string>
     <string name="adblock_status_stopped">Ad blocking is stopped</string>
     <string name="network_unavailable_message">No network connection</string>
-    <string name="update_button">Update blocked domains</string>
-    <string name="show_log_button">Show requested domains</string>
 
     <!-- Error dialog -->
     <string name="error_dialog_help">Please read Help for more information.</string>
