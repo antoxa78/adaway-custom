@@ -91,6 +91,48 @@ public final class CatalogSources {
                     R.string.catalog_source_china,
                     R.string.catalog_source_china_description,
                     R.string.catalog_category_regional
+            ),
+            new CatalogSource(
+                    "https://raw.githubusercontent.com/ProgramComputer/Easylist_hosts/main/EasyListSpanish+EasyList/hosts",
+                    R.string.catalog_source_spain,
+                    R.string.catalog_source_spain_description,
+                    R.string.catalog_category_regional
+            ),
+            new CatalogSource(
+                    "https://raw.githubusercontent.com/ProgramComputer/Easylist_hosts/main/EasyListPolish+EasyList/hosts",
+                    R.string.catalog_source_poland,
+                    R.string.catalog_source_poland_description,
+                    R.string.catalog_category_regional
+            ),
+            new CatalogSource(
+                    "https://raw.githubusercontent.com/ProgramComputer/Easylist_hosts/main/EasyListPortuguese+EasyList/hosts",
+                    R.string.catalog_source_portugal,
+                    R.string.catalog_source_portugal_description,
+                    R.string.catalog_category_regional
+            ),
+            new CatalogSource(
+                    "https://raw.githubusercontent.com/ProgramComputer/Easylist_hosts/main/RuAdList+EasyList/hosts",
+                    R.string.catalog_source_russia,
+                    R.string.catalog_source_russia_description,
+                    R.string.catalog_category_regional
+            ),
+            new CatalogSource(
+                    "https://raw.githubusercontent.com/ProgramComputer/Easylist_hosts/main/KoreanList+EasyList/hosts",
+                    R.string.catalog_source_korea,
+                    R.string.catalog_source_korea_description,
+                    R.string.catalog_category_regional
+            ),
+            new CatalogSource(
+                    "https://raw.githubusercontent.com/ProgramComputer/Easylist_hosts/main/IndianList+EasyList/hosts",
+                    R.string.catalog_source_india,
+                    R.string.catalog_source_india_description,
+                    R.string.catalog_category_regional
+            ),
+            new CatalogSource(
+                    "https://raw.githubusercontent.com/ProgramComputer/Easylist_hosts/main/NordicFilters+EasyList/hosts",
+                    R.string.catalog_source_nordics,
+                    R.string.catalog_source_nordics_description,
+                    R.string.catalog_category_regional
             )
     );
 

@@ -45,6 +45,20 @@
     <string name="catalog_source_dutch_description">Dutch regional ads combined with the global EasyList.</string>
     <string name="catalog_source_china">EasyList China + EasyList</string>
     <string name="catalog_source_china_description">Chinese regional ads combined with the global EasyList.</string>
+    <string name="catalog_source_spain">EasyList Spanish + EasyList</string>
+    <string name="catalog_source_spain_description">Spanish regional ads combined with the global EasyList.</string>
+    <string name="catalog_source_poland">EasyList Polish + EasyList</string>
+    <string name="catalog_source_poland_description">Polish regional ads combined with the global EasyList.</string>
+    <string name="catalog_source_portugal">EasyList Portuguese + EasyList</string>
+    <string name="catalog_source_portugal_description">Portuguese regional ads combined with the global EasyList.</string>
+    <string name="catalog_source_russia">RU AdList + EasyList</string>
+    <string name="catalog_source_russia_description">Russian regional ads combined with the global EasyList.</string>
+    <string name="catalog_source_korea">KoreanList + EasyList</string>
+    <string name="catalog_source_korea_description">Korean regional ads combined with the global EasyList.</string>
+    <string name="catalog_source_india">IndianList + EasyList</string>
+    <string name="catalog_source_india_description">Indian regional ads combined with the global EasyList.</string>
+    <string name="catalog_source_nordics">Nordic Filters + EasyList</string>
+    <string name="catalog_source_nordics_description">Nordic (Denmark, Norway, Sweden, Finland, Iceland) regional ads combined with the global EasyList.</string>
     <!-- Edition dialog -->
     <string name="hosts_add_dialog_title">Add source</string>
 </resources>
