@@ -23,7 +23,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:contentDescription="@string/adblock_start_button_description"
+        app:backgroundTint="?attr/colorPrimary"
         app:layout_anchor="@id/bar"
-        app:srcCompat="@drawable/ic_start_24dp" />
+        app:srcCompat="@drawable/ic_start_24dp"
+        app:tint="?attr/colorOnPrimary" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

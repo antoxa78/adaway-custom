@@ -18,4 +18,8 @@
     <color name="adblock_no_network_text">#FF212121</color>
     <color name="adblock_pending">#FFFFB74D</color>
     <color name="log_recording">#FFEF5350</color>
+    <!-- Source icon tile on the home screen -->
+    <color name="source_icon_background">#1FFFFFFF</color>
+    <!-- Subtle divider lines -->
+    <color name="divider">#1FFFFFFF</color>
 </resources>

@@ -3,7 +3,6 @@ package org.adaway.ui.home;
 import static org.adaway.model.adblocking.AdBlockMethod.UNDEFINED;
 import static org.adaway.model.adblocking.AdBlockMethod.VPN;
 import static org.adaway.model.error.HostError.NO_CONNECTION;
-import static org.adaway.ui.Animations.hideView;
 import static org.adaway.ui.Animations.removeView;
 import static org.adaway.ui.Animations.showView;
 import static org.adaway.ui.lists.ListsActivity.ALLOWED_HOSTS_TAB;
@@ -412,12 +411,11 @@ public class HomeActivity extends AppCompatActivity {
         statusTextView.setText(this.adBlockedState ? R.string.adblock_status_running : R.string.adblock_status_stopped);
         // Hidden until the state is known, so no empty status is shown at startup
         statusTextView.setVisibility(View.VISIBLE);
-        // Display the network warning under the ad blocking status
+        // Display the network warning banner under the ad blocking status
         if (noNetwork) {
-            this.binding.content.networkStatusTextView.setTextColor(headerContentColor);
             showView(this.binding.content.networkStatusTextView);
         } else {
-            hideView(this.binding.content.networkStatusTextView);
+            removeView(this.binding.content.networkStatusTextView);
         }
     }
 

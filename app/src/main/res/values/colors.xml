@@ -35,4 +35,8 @@
     <color name="header_pill">#33000000</color>
     <!-- DNS log recording -->
     <color name="log_recording">#FFD32F2F</color>
+    <!-- Source icon tile on the home screen -->
+    <color name="source_icon_background">#14000000</color>
+    <!-- Subtle divider lines -->
+    <color name="divider">#1F000000</color>
 </resources>

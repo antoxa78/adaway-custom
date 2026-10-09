@@ -17,7 +17,7 @@
     </plurals>
     <string name="check_hosts_update_description">Check for hosts updates</string>
     <string name="update_hosts_description">Update hosts</string>
-    <string name="home_sources_last_update">Sources last updated: %1$s</string>
+    <string name="home_sources_last_update">Last updated: %1$s</string>
 
     <!-- Log card -->
     <string name="log_label">Show DNS request log</string>

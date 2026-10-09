@@ -30,11 +30,11 @@
 
         <ImageView
             android:id="@+id/logoImageView"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="16dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="20dp"
             android:contentDescription="@string/app_logo"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/ic_app_logo" />
@@ -43,87 +43,99 @@
             android:id="@+id/homeDrawerButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/preferences_drawer_item"
             android:scaleType="centerInside"
             android:src="@drawable/ic_settings_24dp"
             android:tooltipText="@string/preferences_drawer_item"
+            app:layout_constraintBottom_toBottomOf="@+id/logoImageView"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/logoImageView"
             app:tint="?attr/colorOnPrimary" />
 
         <TextView
             android:id="@+id/appNameTextView"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="24dp"
             android:ellipsize="end"
+            android:gravity="center"
             android:maxLines="2"
             android:text="@string/app_name"
             android:textAppearance="?attr/textAppearanceHeadline6"
             android:textColor="?attr/colorOnPrimary"
-            app:layout_constraintEnd_toStartOf="@+id/homeDrawerButton"
-            app:layout_constraintStart_toEndOf="@+id/logoImageView"
-            app:layout_constraintTop_toTopOf="@+id/logoImageView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/logoImageView"
             tools:text="AdAway Custom v6.3.0" />
 
         <TextView
             android:id="@+id/appDescriptionTextView"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:gravity="center"
             android:text="@string/app_description"
             android:textAppearance="?attr/textAppearanceBody2"
             android:textColor="?attr/colorOnPrimary"
-            app:layout_constraintEnd_toEndOf="@+id/appNameTextView"
-            app:layout_constraintStart_toStartOf="@+id/appNameTextView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/appNameTextView" />
 
-        <!-- Ad blocking status, announced by accessibility services when it changes -->
+        <!-- Ad blocking status banner, announced by accessibility services when it changes -->
         <TextView
             android:id="@+id/adBlockStatusTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:accessibilityLiveRegion="polite"
             android:background="@drawable/status_pill"
             android:drawableStart="@drawable/status_dot"
             android:drawablePadding="8dp"
             android:drawableTint="?attr/colorOnPrimary"
             android:gravity="center_vertical"
-            android:paddingStart="12dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="4dp"
+            android:paddingStart="14dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="6dp"
             android:textAppearance="?attr/textAppearanceSubtitle2"
             android:textColor="?attr/colorOnPrimary"
             android:visibility="invisible"
             app:layout_constrainedWidth="true"
-            app:layout_constraintEnd_toEndOf="@+id/appNameTextView"
-            app:layout_constraintHorizontal_bias="0"
-            app:layout_constraintStart_toStartOf="@+id/appNameTextView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/appDescriptionTextView"
             tools:text="@string/adblock_status_running"
             tools:visibility="visible" />
 
-        <!-- Network warning, displayed under the ad blocking status when offline -->
+        <!-- Network warning banner, displayed under the ad blocking status when offline -->
         <TextView
             android:id="@+id/networkStatusTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
             android:accessibilityLiveRegion="polite"
+            android:background="@drawable/status_warning_pill"
+            android:drawableStart="@drawable/ic_cloud_off_24dp"
+            android:drawablePadding="8dp"
+            android:drawableTint="@android:color/white"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="6dp"
             android:text="@string/network_unavailable_message"
-            android:textAppearance="?attr/textAppearanceBody2"
-            android:textColor="@color/adblock_no_network_text"
+            android:textAppearance="?attr/textAppearanceSubtitle2"
+            android:textColor="@android:color/white"
             android:textStyle="bold"
             android:visibility="gone"
             app:layout_constrainedWidth="true"
-            app:layout_constraintEnd_toEndOf="@+id/appNameTextView"
-            app:layout_constraintHorizontal_bias="0"
-            app:layout_constraintStart_toStartOf="@+id/appNameTextView"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/adBlockStatusTextView"
             tools:text="No network connection"
             tools:visibility="visible" />
@@ -139,233 +151,162 @@
         <Space
             android:id="@+id/headerBottomSpace"
             android:layout_width="0dp"
-            android:layout_height="80dp"
+            android:layout_height="72dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/headerContentBarrier" />
 
+        <!-- Host counters: a single card with the blocked, allowed and redirected columns -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/blockedHostCardView"
+            android:id="@+id/hostCountCardView"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
             app:cardCornerRadius="24dp"
             app:cardElevation="4dp"
-            app:contentPaddingBottom="16dp"
-            app:contentPaddingLeft="8dp"
-            app:contentPaddingRight="8dp"
-            app:contentPaddingTop="16dp"
             app:layout_constraintBottom_toBottomOf="@+id/headerFrameLayout"
-            app:layout_constraintEnd_toStartOf="@+id/badge1Space"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintHorizontal_weight="1"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/headerFrameLayout">
 
             <androidx.appcompat.widget.LinearLayoutCompat
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:orientation="horizontal"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
 
-                <TextView
-                    android:id="@+id/blockedHostCounterTextView"
-                    android:layout_width="match_parent"
-                    android:layout_height="28dp"
-                    android:autoSizeMaxTextSize="20sp"
-                    android:autoSizeMinTextSize="12sp"
-                    android:autoSizeTextType="uniform"
-                    android:gravity="center"
-                    android:maxLines="1"
-                    android:textAppearance="?attr/textAppearanceHeadline6"
-                    android:textStyle="bold"
-                    tools:text="72,237" />
-
-                <TextView
-                    android:id="@+id/blockedHostTextView"
-                    android:layout_width="wrap_content"
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:id="@+id/blockedHostCardView"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/blocked_hosts_label"
-                    android:textAppearance="?attr/textAppearanceCaption" />
+                    android:layout_weight="1"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp">
+
+                    <ImageView
+                        android:id="@+id/blockedHostImageView"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/blocked_hosts_label"
+                        app:srcCompat="@drawable/baseline_block_24"
+                        app:tint="@color/blocked" />
+
+                    <TextView
+                        android:id="@+id/blockedHostCounterTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginTop="4dp"
+                        android:autoSizeMaxTextSize="22sp"
+                        android:autoSizeMinTextSize="12sp"
+                        android:autoSizeTextType="uniform"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceHeadline6"
+                        android:textStyle="bold"
+                        tools:text="72,237" />
+
+                    <TextView
+                        android:id="@+id/blockedHostTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/blocked_hosts_label"
+                        android:textAppearance="?attr/textAppearanceCaption" />
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:id="@+id/allowedHostCardView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp">
+
+                    <ImageView
+                        android:id="@+id/allowedHostImageView"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/allowed_hosts_label"
+                        app:srcCompat="@drawable/baseline_check_24"
+                        app:tint="@color/allowed" />
+
+                    <TextView
+                        android:id="@+id/allowedHostCounterTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginTop="4dp"
+                        android:autoSizeMaxTextSize="22sp"
+                        android:autoSizeMinTextSize="12sp"
+                        android:autoSizeTextType="uniform"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceHeadline6"
+                        android:textStyle="bold"
+                        tools:text="25" />
+
+                    <TextView
+                        android:id="@+id/allowedHostTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/allowed_hosts_label"
+                        android:textAppearance="?attr/textAppearanceCaption" />
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:id="@+id/redirectHostCardView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp">
+
+                    <ImageView
+                        android:id="@+id/redirectHostImageView"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/redirect_hosts_label"
+                        app:srcCompat="@drawable/baseline_compare_arrows_24"
+                        app:tint="@color/redirected" />
+
+                    <TextView
+                        android:id="@+id/redirectHostCounterTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginTop="4dp"
+                        android:autoSizeMaxTextSize="22sp"
+                        android:autoSizeMinTextSize="12sp"
+                        android:autoSizeTextType="uniform"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceHeadline6"
+                        android:textStyle="bold"
+                        tools:text="2" />
+
+                    <TextView
+                        android:id="@+id/redirectHostTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/redirect_hosts_label"
+                        android:textAppearance="?attr/textAppearanceCaption" />
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
 
             </androidx.appcompat.widget.LinearLayoutCompat>
 
         </com.google.android.material.card.MaterialCardView>
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="75dp"
-            app:cardElevation="4dp"
-            app:layout_constraintBottom_toTopOf="@+id/blockedHostCardView"
-            app:layout_constraintEnd_toEndOf="@+id/blockedHostCardView"
-            app:layout_constraintStart_toStartOf="@+id/blockedHostCardView"
-            app:layout_constraintTop_toTopOf="@+id/blockedHostCardView">
-
-            <ImageView
-                android:id="@+id/blockedHostImageView"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_margin="5dp"
-                android:contentDescription="@string/blocked_hosts_label"
-                app:srcCompat="@drawable/baseline_block_24"
-                app:tint="@color/blocked" />
-        </androidx.cardview.widget.CardView>
-
-        <Space
-            android:id="@+id/badge1Space"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="@+id/headerFrameLayout"
-            app:layout_constraintEnd_toStartOf="@id/allowedHostCardView"
-            app:layout_constraintHorizontal_weight="0.2"
-            app:layout_constraintStart_toEndOf="@id/blockedHostCardView"
-            app:layout_constraintTop_toBottomOf="@+id/headerFrameLayout" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/allowedHostCardView"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="4dp"
-            app:contentPaddingBottom="16dp"
-            app:contentPaddingLeft="8dp"
-            app:contentPaddingRight="8dp"
-            app:contentPaddingTop="16dp"
-            app:layout_constraintBottom_toBottomOf="@+id/headerFrameLayout"
-            app:layout_constraintEnd_toStartOf="@+id/badge2Space"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintHorizontal_weight="1"
-            app:layout_constraintStart_toEndOf="@+id/badge1Space"
-            app:layout_constraintTop_toBottomOf="@+id/headerFrameLayout">
-
-            <androidx.appcompat.widget.LinearLayoutCompat
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/allowedHostCounterTextView"
-                    android:layout_width="match_parent"
-                    android:layout_height="28dp"
-                    android:autoSizeMaxTextSize="20sp"
-                    android:autoSizeMinTextSize="12sp"
-                    android:autoSizeTextType="uniform"
-                    android:gravity="center"
-                    android:maxLines="1"
-                    android:textAppearance="?attr/textAppearanceHeadline6"
-                    android:textStyle="bold"
-                    tools:text="25" />
-
-                <TextView
-                    android:id="@+id/allowedHostTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/allowed_hosts_label"
-                    android:textAppearance="?attr/textAppearanceCaption" />
-
-            </androidx.appcompat.widget.LinearLayoutCompat>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="75dp"
-            app:cardElevation="4dp"
-            app:layout_constraintBottom_toTopOf="@+id/allowedHostCardView"
-            app:layout_constraintEnd_toEndOf="@+id/allowedHostCardView"
-            app:layout_constraintStart_toStartOf="@+id/allowedHostCardView"
-            app:layout_constraintTop_toTopOf="@+id/allowedHostCardView">
-
-            <ImageView
-                android:id="@+id/allowedHostImageView"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_margin="5dp"
-                android:contentDescription="@string/allowed_hosts_label"
-                app:srcCompat="@drawable/baseline_check_24"
-                app:tint="@color/allowed" />
-        </androidx.cardview.widget.CardView>
-
-        <Space
-            android:id="@+id/badge2Space"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="@+id/headerFrameLayout"
-            app:layout_constraintEnd_toStartOf="@id/redirectHostCardView"
-            app:layout_constraintHorizontal_weight="0.2"
-            app:layout_constraintStart_toEndOf="@id/allowedHostCardView"
-            app:layout_constraintTop_toBottomOf="@+id/headerFrameLayout" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/redirectHostCardView"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            app:contentPaddingBottom="16dp"
-            app:contentPaddingLeft="8dp"
-            app:contentPaddingRight="8dp"
-            app:contentPaddingTop="16dp"
-            app:layout_constraintBottom_toBottomOf="@+id/headerFrameLayout"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintHorizontal_weight="1"
-            app:layout_constraintStart_toEndOf="@+id/badge2Space"
-            app:layout_constraintTop_toBottomOf="@+id/headerFrameLayout">
-
-            <androidx.appcompat.widget.LinearLayoutCompat
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/redirectHostCounterTextView"
-                    android:layout_width="match_parent"
-                    android:layout_height="28dp"
-                    android:autoSizeMaxTextSize="20sp"
-                    android:autoSizeMinTextSize="12sp"
-                    android:autoSizeTextType="uniform"
-                    android:gravity="center"
-                    android:maxLines="1"
-                    android:textAppearance="?attr/textAppearanceHeadline6"
-                    android:textStyle="bold"
-                    tools:text="2" />
-
-                <TextView
-                    android:id="@+id/redirectHostTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/redirect_hosts_label"
-                    android:textAppearance="?attr/textAppearanceCaption" />
-
-            </androidx.appcompat.widget.LinearLayoutCompat>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="75dp"
-            app:cardElevation="4dp"
-            app:layout_constraintBottom_toTopOf="@+id/redirectHostCardView"
-            app:layout_constraintEnd_toEndOf="@+id/redirectHostCardView"
-            app:layout_constraintStart_toStartOf="@+id/redirectHostCardView"
-            app:layout_constraintTop_toTopOf="@+id/redirectHostCardView">
-
-            <ImageView
-                android:id="@+id/redirectHostImageView"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_margin="5dp"
-                android:contentDescription="@string/redirect_hosts_label"
-                app:srcCompat="@drawable/baseline_compare_arrows_24"
-                app:tint="@color/redirected" />
-        </androidx.cardview.widget.CardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/sourcesCardView"
@@ -379,7 +320,7 @@
             app:contentPadding="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/allowedHostCardView">
+            app:layout_constraintTop_toBottomOf="@+id/hostCountCardView">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -388,13 +329,16 @@
 
                 <ImageView
                     android:id="@+id/sourceImageView"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/source_icon_background"
                     android:contentDescription="@string/icon_update_status"
+                    android:padding="10dp"
                     app:layout_constraintBottom_toBottomOf="@+id/updateImageView"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="@+id/checkForUpdateImageView"
-                    app:srcCompat="@drawable/ic_collections_bookmark_24dp" />
+                    app:srcCompat="@drawable/ic_collections_bookmark_24dp"
+                    app:tint="?attr/colorOnSurface" />
 
                 <TextView
                     android:id="@+id/upToDateSourcesTextView"
@@ -450,6 +394,17 @@
                     app:layout_constraintTop_toBottomOf="@+id/checkForUpdateImageView"
                     app:srcCompat="@drawable/ic_get_app_24dp" />
 
+                <!-- Footer: source update state and last update date, separated by a divider -->
+                <View
+                    android:id="@+id/sourcesDivider"
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@color/divider"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/updateImageView" />
+
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/sourcesProgressBar"
                     android:layout_width="0dp"
@@ -459,36 +414,53 @@
                     android:visibility="gone"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/updateImageView"
+                    app:layout_constraintTop_toBottomOf="@+id/sourcesDivider"
                     tools:visibility="visible" />
 
-                <TextView
-                    android:id="@+id/stateTextView"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/sourcesFooterLayout"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textAppearance="?attr/textAppearanceBody2"
-                    android:visibility="gone"
+                    android:layout_marginTop="10dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@+id/sourcesProgressBar"
-                    app:layout_goneMarginTop="12dp"
-                    tools:text="@string/status_check_source"
-                    tools:visibility="visible" />
+                    app:layout_goneMarginTop="12dp">
 
-                <TextView
-                    android:id="@+id/lastUpdateTextView"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textAppearance="?attr/textAppearanceCaption"
-                    android:visibility="gone"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@+id/stateTextView"
-                    app:layout_goneMarginTop="12dp"
-                    tools:text="Sources last updated: Oct 7, 2026, 6:45 PM"
-                    tools:visibility="visible" />
+                    <TextView
+                        android:id="@+id/stateTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceCaption"
+                        android:visibility="gone"
+                        app:layout_constrainedWidth="true"
+                        app:layout_constraintEnd_toStartOf="@+id/lastUpdateTextView"
+                        app:layout_constraintHorizontal_bias="0"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        tools:text="@string/status_check_source"
+                        tools:visibility="visible" />
+
+                    <TextView
+                        android:id="@+id/lastUpdateTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceCaption"
+                        android:visibility="gone"
+                        app:layout_constrainedWidth="true"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintHorizontal_bias="1"
+                        app:layout_constraintStart_toEndOf="@+id/stateTextView"
+                        app:layout_constraintTop_toTopOf="parent"
+                        tools:text="Last updated: Oct 7, 6:45 PM"
+                        tools:visibility="visible" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
