@@ -30,4 +30,11 @@ public interface HostsSourcesViewCallback {
      * @param source     The hosts source to start the action.
      */
     void edit(HostsSource source);
+
+    /**
+     * Remove a hosts source.
+     *
+     * @param source The hosts source to remove.
+     */
+    void remove(HostsSource source);
 }

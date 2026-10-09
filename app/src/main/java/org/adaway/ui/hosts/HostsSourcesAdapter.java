@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -120,6 +121,9 @@ class HostsSourcesAdapter extends ListAdapter<HostsSource, HostsSourcesAdapter.V
         holder.updateTextView.setText(getUpdateText(source));
         holder.sizeTextView.setText(getHostCount(source));
         holder.itemView.setOnClickListener(view -> viewCallback.edit(source));
+        // Remove button: let the user delete any source except the built-in user list
+        holder.removeButton.setVisibility(source.getId() == HostsSource.USER_SOURCE_ID ? View.GONE : View.VISIBLE);
+        holder.removeButton.setOnClickListener(view -> viewCallback.remove(source));
         // Dim disabled sources so the enabled ones stand out
         holder.itemView.setAlpha(source.isEnabled() ? 1F : DISABLED_SOURCE_ALPHA);
     }
@@ -207,6 +211,7 @@ class HostsSourcesAdapter extends ListAdapter<HostsSource, HostsSourcesAdapter.V
         final TextView urlTextView;
         final TextView updateTextView;
         final TextView sizeTextView;
+        final ImageButton removeButton;
 
         /**
          * Constructor.
@@ -220,6 +225,7 @@ class HostsSourcesAdapter extends ListAdapter<HostsSource, HostsSourcesAdapter.V
             this.urlTextView = itemView.findViewById(R.id.sourceUrlTextView);
             this.updateTextView = itemView.findViewById(R.id.sourceUpdateTextView);
             this.sizeTextView = itemView.findViewById(R.id.sourceSizeTextView);
+            this.removeButton = itemView.findViewById(R.id.removeButton);
         }
     }
 }

@@ -160,6 +160,16 @@ public class HostsSourcesFragment extends Fragment implements HostsSourcesViewCa
         startSourceEdition(source);
     }
 
+    @Override
+    public void remove(HostsSource source) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.hosts_source_remove_dialog_title)
+                .setMessage(getString(R.string.hosts_source_remove_dialog_message, source.getLabel()))
+                .setPositiveButton(R.string.hosts_source_remove_confirm, (dialog, which) -> this.mViewModel.remove(source))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
     private void startSourceEdition(@Nullable HostsSource source) {
         Intent intent = new Intent(requireContext(), SourceEditActivity.class);
         if (source != null) {

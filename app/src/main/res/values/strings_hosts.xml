@@ -9,6 +9,10 @@
     <!-- List -->
     <string name="hosts_count">%s hosts</string>
     <string name="hosts_sources_apply">Apply</string>
+    <string name="hosts_source_remove_description">Remove source</string>
+    <string name="hosts_source_remove_dialog_title">Remove source</string>
+    <string name="hosts_source_remove_dialog_message">Remove %1$s?\n\nIts downloaded hosts entries will also be removed.</string>
+    <string name="hosts_source_remove_confirm">Remove</string>
     <string name="hosts_restore_defaults">Restore default lists</string>
     <string name="hosts_restore_defaults_message">This will remove all added hosts sources and restore the default ones (AdAway, StevenBlack and Pete Lowe). Your own user list is kept. Do you want to continue?</string>
     <string name="hosts_restore_defaults_confirm">Restore</string>

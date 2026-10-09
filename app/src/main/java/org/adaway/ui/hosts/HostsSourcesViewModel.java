@@ -37,6 +37,15 @@ public class HostsSourcesViewModel extends AndroidViewModel {
     }
 
     /**
+     * Remove a hosts source and its downloaded hosts entries.
+     *
+     * @param source The hosts source to remove.
+     */
+    public void remove(HostsSource source) {
+        EXECUTOR.execute(() -> this.hostsSourceDao.delete(source));
+    }
+
+    /**
      * Reset the hosts sources to the default ones.<br>
      * All sources except the user list are removed, then the default sources are restored.
      */
