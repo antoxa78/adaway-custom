@@ -47,6 +47,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -62,6 +63,13 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
      * Maximum packet size is constrained by the MTU, which is given as a signed short.
      */
     private static final int MAX_PACKET_SIZE = Short.MAX_VALUE;
+
+    /**
+     * Whether the VPN tunnel is currently established, i.e. the tunnel interface is open.<br>
+     * It is updated by the worker thread and read by the application (same process) to detect a
+     * service left running without any tunnel.
+     */
+    private static final AtomicBoolean TUNNEL_ESTABLISHED = new AtomicBoolean(false);
 
     /**
      * The VPN service, also used as {@link android.content.Context}.
@@ -121,6 +129,15 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
     }
 
     /**
+     * Check whether the VPN tunnel is currently established.
+     *
+     * @return {@code true} if the tunnel interface is open, {@code false} otherwise.
+     */
+    public static boolean isTunnelEstablished() {
+        return TUNNEL_ESTABLISHED.get();
+    }
+
+    /**
      * Start the VPN worker.
      * Kill the current worker and restart it if already running.
      */
@@ -145,6 +162,9 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
         this.generation.incrementAndGet();
         this.connectionMonitor.reset();
         forceCloseTunnel();
+        // The tunnel interface is closed just above: reflect it immediately, even if the worker
+        // thread has not unwound its run loop yet.
+        TUNNEL_ESTABLISHED.set(false);
         setExecutor(null);
         Timber.i("VPN thread stopped.");
     }
@@ -227,6 +247,8 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
              FileOutputStream outputStream = new FileOutputStream(pfd.getFileDescriptor())) {
             // Store reference to network interface to close it externally on demand
             this.vpnNetworkInterface.set(pfd);
+            // The tunnel interface is open
+            TUNNEL_ESTABLISHED.set(true);
             // Initialize connection monitor
             this.connectionMonitor.initialize(this.dnsServerMapper);
 
@@ -242,6 +264,9 @@ public class VpnWorker implements DnsPacketProxy.EventLoop {
             while (deviceOpened) {
                 deviceOpened = doOne(inputStream, outputStream, packet);
             }
+        } finally {
+            // The tunnel interface is closed
+            TUNNEL_ESTABLISHED.set(false);
         }
     }
 

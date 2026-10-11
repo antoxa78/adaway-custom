@@ -35,16 +35,14 @@ public class RestartReceiver extends BroadcastReceiver {
             Timber.w("VPN authorization revoked, cannot restart VPN service.");
             return;
         }
-        // Restart the VPN service if it is supposed to be running but is not
-        boolean shouldRun = VpnServiceControls.isStarted(context);
-        boolean running = VpnServiceControls.isRunning(context);
-        if (shouldRun && !running) {
-            Timber.i("Restarting VPN service from %s broadcast.", intent.getAction());
-            try {
-                VpnServiceControls.start(context);
-            } catch (RuntimeException e) {
-                Timber.w(e, "Failed to restart VPN service from %s broadcast.", intent.getAction());
+        // Ensure the tunnel is established without relying on the service liveness: a service left
+        // running without any tunnel is restarted too
+        try {
+            if (VpnServiceControls.ensureRunning(context)) {
+                Timber.i("Restarted VPN service from %s broadcast.", intent.getAction());
             }
+        } catch (RuntimeException e) {
+            Timber.w(e, "Failed to restart VPN service from %s broadcast.", intent.getAction());
         }
     }
 }

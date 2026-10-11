@@ -315,8 +315,8 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="24dp"
             android:layout_marginEnd="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
             app:contentPadding="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -463,6 +463,155 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Blocked domains statistics: same visual language as the host counters card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/blockedStatsCardView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:contentPadding="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/sourcesCardView">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Card header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:id="@+id/blockedStatsImageView"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/blocked_stats_title"
+                        app:srcCompat="@drawable/baseline_block_24"
+                        app:tint="@color/blocked" />
+
+                    <TextView
+                        android:id="@+id/blockedStatsTitleTextView"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/blocked_stats_title"
+                        android:textAppearance="?attr/textAppearanceSubtitle1" />
+                </LinearLayout>
+
+                <!-- Header divider, same treatment as the sources card footer -->
+                <View
+                    android:id="@+id/blockedStatsDivider"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@color/divider" />
+
+                <!-- Blocked distinct domains: today, current month and all time -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/blockedTodayCountTextView"
+                            android:layout_width="match_parent"
+                            android:layout_height="30dp"
+                            android:autoSizeMaxTextSize="22sp"
+                            android:autoSizeMinTextSize="12sp"
+                            android:autoSizeTextType="uniform"
+                            android:gravity="center"
+                            android:maxLines="1"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textStyle="bold"
+                            tools:text="1,237" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/blocked_stats_today"
+                            android:textAppearance="?attr/textAppearanceCaption" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/blockedMonthCountTextView"
+                            android:layout_width="match_parent"
+                            android:layout_height="30dp"
+                            android:autoSizeMaxTextSize="22sp"
+                            android:autoSizeMinTextSize="12sp"
+                            android:autoSizeTextType="uniform"
+                            android:gravity="center"
+                            android:maxLines="1"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textStyle="bold"
+                            tools:text="31,004" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/blocked_stats_month"
+                            android:textAppearance="?attr/textAppearanceCaption" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/blockedTotalCountTextView"
+                            android:layout_width="match_parent"
+                            android:layout_height="30dp"
+                            android:autoSizeMaxTextSize="22sp"
+                            android:autoSizeMinTextSize="12sp"
+                            android:autoSizeTextType="uniform"
+                            android:gravity="center"
+                            android:maxLines="1"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textStyle="bold"
+                            tools:text="128,441" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/blocked_stats_total"
+                            android:textAppearance="?attr/textAppearanceCaption" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
         </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

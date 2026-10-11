@@ -23,6 +23,7 @@ import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.view.WindowCompat;
@@ -39,6 +40,7 @@ import org.adaway.helper.NotificationHelper;
 import org.adaway.helper.PreferenceHelper;
 import org.adaway.helper.ThemeHelper;
 import org.adaway.model.adblocking.AdBlockMethod;
+import org.adaway.model.adblocking.AdBlockState;
 import org.adaway.model.error.HostError;
 import org.adaway.ui.help.HelpActivity;
 import org.adaway.ui.hosts.HostsSourcesActivity;
@@ -70,7 +72,7 @@ public class HomeActivity extends AppCompatActivity {
     private HomeActivityBinding binding;
     private HomeViewModel homeViewModel;
     private ActivityResultLauncher<Intent> prepareVpnLauncher;
-    private boolean adBlockedState;
+    private AdBlockState adBlockState = AdBlockState.STOPPED;
     private boolean adBlockStateKnown;
     private boolean networkAvailable = true;
     private int headerTextDefaultColor;
@@ -91,13 +93,14 @@ public class HomeActivity extends AppCompatActivity {
         this.statusDotDefaultTint = this.binding.content.adBlockStatusTextView.getCompoundDrawableTintList();
 
         this.homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
-        this.homeViewModel.isAdBlocked().observe(this, this::notifyAdBlocked);
+        this.homeViewModel.getAdBlockState().observe(this, this::notifyAdBlockState);
         this.homeViewModel.isNetworkAvailable().observe(this, this::notifyNetworkAvailable);
         this.homeViewModel.getError().observe(this, this::notifyError);
 
         applyActionBar();
         bindAppVersion();
         bindHostCounter();
+        bindBlockedStatistics();
         bindSourceCounter();
         bindPending();
         bindState();
@@ -121,6 +124,9 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // Refresh the displayed state in case the VPN service died while the app was in the
+        // background without emitting a STOPPED status.
+        this.homeViewModel.reconcileAdBlocking();
         checkFirstStep();
         checkVpnRestart();
         checkBatteryOptimization();
@@ -149,12 +155,9 @@ public class HomeActivity extends AppCompatActivity {
         if (VpnService.prepare(this) != null) {
             return;
         }
-        boolean shouldRun = VpnServiceControls.isStarted(this);
-        boolean running = VpnServiceControls.isRunning(this);
-        if (shouldRun && !running) {
-            Timber.i("Restarting killed VPN service…");
-            VpnServiceControls.start(this);
-        }
+        // Ensure the tunnel is established without relying on the service liveness: a service left
+        // running without any tunnel is restarted too.
+        VpnServiceControls.ensureRunning(this);
     }
 
     private void checkBatteryOptimization() {
@@ -271,6 +274,26 @@ public class HomeActivity extends AppCompatActivity {
         Transformations.map(redirectHostCount, stringMapper).observe(this, redirectHostCountTextView::setText);
     }
 
+    private void bindBlockedStatistics() {
+        // Show the counts with the locale digit grouping (e.g. 1,237), easier to read than 1237
+        NumberFormat numberFormat = NumberFormat.getIntegerInstance();
+
+        TextView todayCountTextView = this.binding.content.blockedTodayCountTextView;
+        this.homeViewModel.getBlockedTodayCount().observe(this, count ->
+                todayCountTextView.setText(numberFormat.format(count == null ? 0 : count))
+        );
+
+        TextView monthCountTextView = this.binding.content.blockedMonthCountTextView;
+        this.homeViewModel.getBlockedMonthCount().observe(this, count ->
+                monthCountTextView.setText(numberFormat.format(count == null ? 0 : count))
+        );
+
+        TextView totalCountTextView = this.binding.content.blockedTotalCountTextView;
+        this.homeViewModel.getBlockedTotalCount().observe(this, count ->
+                totalCountTextView.setText(numberFormat.format(count == null ? 0 : count))
+        );
+    }
+
     private void bindSourceCounter() {
         Resources resources = getResources();
 
@@ -366,8 +389,8 @@ public class HomeActivity extends AppCompatActivity {
         startActivity(new Intent(this, PrefsActivity.class));
     }
 
-    private void notifyAdBlocked(boolean adBlocked) {
-        this.adBlockedState = adBlocked;
+    private void notifyAdBlockState(AdBlockState state) {
+        this.adBlockState = state;
         this.adBlockStateKnown = true;
         updateHomeStatus();
     }
@@ -383,32 +406,36 @@ public class HomeActivity extends AppCompatActivity {
         if (!this.adBlockStateKnown) {
             return;
         }
-        boolean noNetwork = this.adBlockedState && !this.networkAvailable;
-        // Header background: green when running, yellow when running without a network, red when stopped
-        int color = getColor(!this.adBlockedState
+        boolean active = this.adBlockState.isActive();
+        boolean noNetwork = active && !this.networkAvailable;
+        // Warning (amber) header while ad blocking is active but not actually blocking yet:
+        // starting, waiting for a network or reconnecting, and when running without a network.
+        boolean warning = active && (this.adBlockState != AdBlockState.RUNNING || !this.networkAvailable);
+        // Header background: green when running, amber while pending, red when stopped
+        int color = getColor(!active
                 ? R.color.adblock_stopped
-                : (this.networkAvailable ? R.color.adblock_active : R.color.adblock_no_network));
+                : (warning ? R.color.adblock_no_network : R.color.adblock_active));
         this.binding.content.headerFrameLayout.setBackgroundColor(color);
         setStatusBarColor(color);
-        // Keep the header content readable on the yellow warning background
-        int headerContentColor = noNetwork ? Color.BLACK : this.headerTextDefaultColor;
+        // Keep the header content readable on the amber warning background
+        int headerContentColor = warning ? Color.BLACK : this.headerTextDefaultColor;
         this.binding.content.appNameTextView.setTextColor(headerContentColor);
         this.binding.content.appDescriptionTextView.setTextColor(headerContentColor);
         this.binding.content.adBlockStatusTextView.setTextColor(headerContentColor);
-        this.binding.content.adBlockStatusTextView.setCompoundDrawableTintList(noNetwork
+        this.binding.content.adBlockStatusTextView.setCompoundDrawableTintList(warning
                 ? ColorStateList.valueOf(Color.BLACK)
                 : this.statusDotDefaultTint);
-        this.binding.content.homeDrawerButton.setImageTintList(noNetwork
+        this.binding.content.homeDrawerButton.setImageTintList(warning
                 ? ColorStateList.valueOf(Color.BLACK)
                 : this.drawerButtonDefaultTint);
         // Update the start/stop button icon and description
-        this.binding.fab.setImageResource(this.adBlockedState ? R.drawable.ic_stop_24dp : R.drawable.ic_start_24dp);
+        this.binding.fab.setImageResource(active ? R.drawable.ic_stop_24dp : R.drawable.ic_start_24dp);
         this.binding.fab.setContentDescription(getString(
-                this.adBlockedState ? R.string.adblock_stop_button_description : R.string.adblock_start_button_description
+                active ? R.string.adblock_stop_button_description : R.string.adblock_start_button_description
         ));
         // Update the status shown in the header (its colors follow the header)
         TextView statusTextView = this.binding.content.adBlockStatusTextView;
-        statusTextView.setText(this.adBlockedState ? R.string.adblock_status_running : R.string.adblock_status_stopped);
+        statusTextView.setText(getAdBlockStatusText(this.adBlockState, this.networkAvailable));
         // Hidden until the state is known, so no empty status is shown at startup
         statusTextView.setVisibility(View.VISIBLE);
         // Display the network warning banner under the ad blocking status
@@ -416,6 +443,30 @@ public class HomeActivity extends AppCompatActivity {
             showView(this.binding.content.networkStatusTextView);
         } else {
             removeView(this.binding.content.networkStatusTextView);
+        }
+    }
+
+    @StringRes
+    private static int getAdBlockStatusText(AdBlockState state, boolean networkAvailable) {
+        if (state == AdBlockState.STOPPED) {
+            return R.string.adblock_status_stopped;
+        }
+        // Without any network, ad blocking is idle whatever the service state is
+        if (!networkAvailable) {
+            return R.string.adblock_status_waiting_for_network;
+        }
+        switch (state) {
+            case STARTING:
+                return R.string.adblock_status_starting;
+            case RUNNING:
+                return R.string.adblock_status_running;
+            case WAITING_FOR_NETWORK:
+                return R.string.adblock_status_waiting_for_network;
+            case RECONNECTING:
+                return R.string.adblock_status_reconnecting;
+            case STOPPED:
+            default:
+                return R.string.adblock_status_stopped;
         }
     }
 

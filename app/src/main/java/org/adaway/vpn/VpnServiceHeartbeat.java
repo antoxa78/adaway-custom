@@ -1,12 +1,9 @@
 package org.adaway.vpn;
 
-import static android.content.Context.ACTIVITY_SERVICE;
 import static androidx.work.ExistingPeriodicWorkPolicy.KEEP;
 import static androidx.work.ListenableWorker.Result.success;
-import static java.lang.Integer.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
-import android.app.ActivityManager;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
@@ -17,10 +14,8 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import timber.log.Timber;
-
 /**
- * This class is a worker to monitor the {@link VpnService} is still running.
+ * This class is a worker to monitor the {@link VpnService} tunnel is still established.
  *
  * @author Bruce BUJON (bruce.bujon(at)gmail(dot)com)
  */
@@ -43,26 +38,10 @@ public class VpnServiceHeartbeat extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        Context context = getApplicationContext();
-        if (VpnServiceControls.isStarted(context) && !isVpnServiceRunning()) {
-            Timber.i("VPN service is not running. Starting VPN service…");
-            VpnServiceControls.start(context);
-            Timber.i("VPN service started.");
-        }
+        // Ensure the tunnel is established without relying on the service liveness: a service left
+        // running without any tunnel is restarted too.
+        VpnServiceControls.ensureRunning(getApplicationContext());
         return success();
-    }
-
-    // TODO Use VpnServiceControls.isVpnServiceRunning instead?
-    private boolean isVpnServiceRunning() {
-        String serviceName = VpnService.class.getName();
-        ActivityManager manager = (ActivityManager) getApplicationContext().getSystemService(ACTIVITY_SERVICE);
-        // Deprecated as it only return application service. It is fine for this use case.
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(MAX_VALUE)) {
-            if (serviceName.equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

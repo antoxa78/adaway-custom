@@ -34,6 +34,10 @@ public abstract class AdBlockModel {
      */
     protected final MutableLiveData<Boolean> applied;
     /**
+     * The ad blocking state.
+     */
+    protected final MutableLiveData<AdBlockState> blockingState;
+    /**
      * The model state.
      */
     private final MutableLiveData<String> state;
@@ -47,6 +51,7 @@ public abstract class AdBlockModel {
         this.context = context;
         this.state = new MutableLiveData<>();
         this.applied = new MutableLiveData<>();
+        this.blockingState = new MutableLiveData<>();
     }
 
     /**
@@ -84,6 +89,25 @@ public abstract class AdBlockModel {
     }
 
     /**
+     * Get the ad blocking state.
+     *
+     * @return The ad blocking state.
+     */
+    public LiveData<AdBlockState> getBlockingState() {
+        return this.blockingState;
+    }
+
+    /**
+     * Reconcile the applied state with the actual ad blocking state.
+     * <p>
+     * The default implementation does nothing. Models whose applied state can become stale
+     * (for example because it is only pushed by asynchronous events) should override this to
+     * refresh {@link #applied} from the current system state.
+     */
+    public void reconcile() {
+    }
+
+    /**
      * Apply hosts list.
      *
      * @throws HostErrorException If the model configuration could not be applied.
@@ -110,6 +134,18 @@ public abstract class AdBlockModel {
         String state = this.context.getString(stateResId, details);
         Timber.d(state);
         this.state.postValue(state);
+    }
+
+    /**
+     * Set the ad blocking state.
+     * <p>
+     * This updates both the detailed state and the applied flag.
+     *
+     * @param state The ad blocking state to set.
+     */
+    protected void setBlockingState(AdBlockState state) {
+        this.applied.postValue(state.isActive());
+        this.blockingState.postValue(state);
     }
 
     /**

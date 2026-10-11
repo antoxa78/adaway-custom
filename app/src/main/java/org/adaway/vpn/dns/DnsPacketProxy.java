@@ -200,6 +200,10 @@ public class DnsPacketProxy {
         switch (entry.getType()) {
             case BLOCKED:
                 Timber.i("handleDnsRequest: DNS Name %s blocked!", dnsQueryName);
+                // Record the blocked domain for the statistics
+                if (this.vpnModel != null) {
+                    this.vpnModel.recordBlocked(dnsQueryName);
+                }
                 dnsMsg.getHeader().setFlag(Flags.QR);
                 dnsMsg.getHeader().setRcode(Rcode.NOERROR);
                 dnsMsg.addRecord(NEGATIVE_CACHE_SOA_RECORD, Section.AUTHORITY);

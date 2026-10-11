@@ -135,6 +135,20 @@ final class Migrations {
     };
 
     /**
+     * The migration script from v8 to v9.<br>
+     * It creates the blocked domains statistics tables.
+     */
+    static final Migration MIGRATION_8_9 = new Migration(8, 9) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // Aggregated count of distinct blocked domains per day
+            database.execSQL("CREATE TABLE IF NOT EXISTS `blocked_stats` (`day` TEXT NOT NULL, `count` INTEGER NOT NULL, PRIMARY KEY(`day`))");
+            // Deduplication ledger of the blocked domains of the current day
+            database.execSQL("CREATE TABLE IF NOT EXISTS `blocked_domains` (`day` TEXT NOT NULL, `domain` TEXT NOT NULL, PRIMARY KEY(`day`, `domain`))");
+        }
+    };
+
+    /**
      * Ensure the user list exists and owns the reserved id 1.<br>
      * On some databases a regular hosts source ended up with the id 1 while the user list was
      * missing, which made that source be excluded from every query (and so unselectable).

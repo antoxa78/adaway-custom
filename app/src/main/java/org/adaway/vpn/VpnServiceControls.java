@@ -1,16 +1,22 @@
 package org.adaway.vpn;
 
 import static android.content.Context.ACTIVITY_SERVICE;
+import static android.content.Context.CONNECTIVITY_SERVICE;
+import static android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET;
+import static android.net.NetworkCapabilities.TRANSPORT_VPN;
 import static org.adaway.broadcast.Command.START;
 import static org.adaway.broadcast.Command.STOP;
 import static org.adaway.vpn.VpnStatus.STOPPED;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
-import android.app.ActivityManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 
 import org.adaway.helper.PreferenceHelper;
-
+import org.adaway.vpn.worker.VpnWorker;
 
 import timber.log.Timber;
 
@@ -51,6 +57,18 @@ public final class VpnServiceControls {
     }
 
     /**
+     * Check if the VPN tunnel is currently established.
+     * <p>
+     * Unlike {@link #isRunning(Context)}, which only tells whether the VPN service is alive, this
+     * tells whether the tunnel interface is actually open.
+     *
+     * @return {@code true} if the VPN tunnel is established, {@code false} otherwise.
+     */
+    public static boolean isTunnelEstablished() {
+        return VpnWorker.isTunnelEstablished();
+    }
+
+    /**
      * Start the VPN service.
      *
      * @param context The application context.
@@ -64,7 +82,15 @@ public final class VpnServiceControls {
         // Start the VPN service
         Intent intent = new Intent(context, VpnService.class);
         START.appendToIntent(intent);
-        boolean started = context.startForegroundService(intent) != null;
+        boolean started;
+        try {
+            started = context.startForegroundService(intent) != null;
+        } catch (IllegalStateException e) {
+            // The system refuses to start a foreground service from the background
+            // (ForegroundServiceStartNotAllowedException on Android 12 and later).
+            Timber.w(e, "Failed to send start command to VPN service.");
+            return false;
+        }
         if (started) {
             // Start the heartbeat
             VpnServiceHeartbeat.start(context);
@@ -96,6 +122,54 @@ public final class VpnServiceControls {
             VpnServiceHeartbeat.start(context);
         }
         return started;
+    }
+
+    /**
+     * Ensure the VPN tunnel is established while ad blocking is expected to run.
+     * <p>
+     * Unlike {@link #isRunning(Context)}, this does not trust the service liveness: a service left
+     * running without any tunnel is restarted too, so the self-healing does not depend on the
+     * service being killed to happen. It is a no-op when ad blocking is stopped, when the tunnel
+     * is already established, or when the service is alive but waiting for a network.
+     *
+     * @param context The application context.
+     * @return {@code true} if a start or restart command was sent, {@code false} otherwise.
+     */
+    public static boolean ensureRunning(Context context) {
+        if (!isStarted(context) || isTunnelEstablished()) {
+            return false;
+        }
+        // When the service is still alive, only rebuild the tunnel if an underlying network is
+        // available: otherwise the service is legitimately waiting for one and would rebuild a
+        // tunnel it cannot use (see VpnStatus.WAITING_FOR_NETWORK).
+        if (isVpnServiceRunning(context) && !isUnderlyingNetworkAvailable(context)) {
+            return false;
+        }
+        Timber.i("VPN tunnel is not established, restarting VPN service…");
+        return restart(context);
+    }
+
+    /**
+     * Check if an underlying network (Wi-Fi or cellular, not the VPN itself) with internet access
+     * is available.
+     *
+     * @param context The application context.
+     * @return {@code true} if an underlying network is available, {@code false} otherwise.
+     */
+    private static boolean isUnderlyingNetworkAvailable(Context context) {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(CONNECTIVITY_SERVICE);
+        if (connectivityManager == null) {
+            return false;
+        }
+        for (Network network : connectivityManager.getAllNetworks()) {
+            NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+            if (capabilities != null
+                    && capabilities.hasCapability(NET_CAPABILITY_INTERNET)
+                    && !capabilities.hasTransport(TRANSPORT_VPN)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

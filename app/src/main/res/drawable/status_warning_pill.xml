@@ -2,6 +2,6 @@
 <!-- Background of the network warning banner shown in the home screen header -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <corners android:radius="18dp" />
+    <corners android:radius="16dp" />
     <solid android:color="@color/adblock_no_network_text" />
 </shape>

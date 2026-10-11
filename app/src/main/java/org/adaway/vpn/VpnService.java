@@ -27,6 +27,7 @@ import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
 import static org.adaway.broadcast.Command.START;
 import static org.adaway.broadcast.Command.STOP;
+import static org.adaway.broadcast.Command.UNKNOWN;
 import static org.adaway.broadcast.CommandReceiver.SEND_COMMAND_ACTION;
 import static org.adaway.helper.NotificationHelper.VPN_RESUME_SERVICE_NOTIFICATION_ID;
 import static org.adaway.helper.NotificationHelper.VPN_RUNNING_SERVICE_NOTIFICATION_ID;
@@ -140,6 +141,13 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         Command command = intent == null ?
                 START :
                 Command.readFromIntent(intent);
+        // The system can also start the service with a non-null intent without any command (for
+        // example when the always-on VPN is (re)started): start ad blocking when it is expected
+        // to run, otherwise the service would stay up without any tunnel.
+        if (command == UNKNOWN && PreferenceHelper.getVpnServiceStatus(this).isStarted()) {
+            Timber.i("System started the VPN service, starting ad blocking.");
+            command = START;
+        }
         switch (command) {
             case START:
                 startVpn();
@@ -157,6 +165,12 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
     public void onDestroy() {
         Timber.d("Destroying VPN service…");
         unregisterNetworkCallback();
+        // The service (and with it the tunnel) is gone: notify the UI so it does not keep
+        // displaying the last non-terminal status (typically RUNNING) while no tunnel exists.
+        // Only the UI status is broadcast here; the persisted "should run" status is left
+        // untouched so the restart mechanisms (heartbeat, onResume reconciliation) can still
+        // bring the service back.
+        broadcastStatus(STOPPED);
         Timber.d("Destroyed VPN service.");
     }
 
@@ -253,6 +267,15 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
                 }
         }
 
+        broadcastStatus(status);
+    }
+
+    /**
+     * Broadcast a VPN status update to the application.
+     *
+     * @param status The status to broadcast.
+     */
+    private void broadcastStatus(VpnStatus status) {
         Intent intent = new Intent(VPN_UPDATE_STATUS_INTENT);
         intent.putExtra(VPN_UPDATE_STATUS_EXTRA, status.toCode());
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);

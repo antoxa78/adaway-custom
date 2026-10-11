@@ -21,9 +21,11 @@ import androidx.lifecycle.Transformations;
 
 import org.adaway.AdAwayApplication;
 import org.adaway.db.AppDatabase;
+import org.adaway.db.dao.BlockedStatDao;
 import org.adaway.db.dao.HostListItemDao;
 import org.adaway.db.dao.HostsSourceDao;
 import org.adaway.model.adblocking.AdBlockModel;
+import org.adaway.model.adblocking.AdBlockState;
 import org.adaway.model.error.HostError;
 import org.adaway.model.error.HostErrorException;
 import org.adaway.model.source.SourceModel;
@@ -33,6 +35,7 @@ import org.adaway.util.AppExecutors;
 import org.adaway.util.DateTimeUtils;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collections;
@@ -55,6 +58,7 @@ public class HomeViewModel extends AndroidViewModel {
 
     private final HostsSourceDao hostsSourceDao;
     private final HostListItemDao hostListItemDao;
+    private final BlockedStatDao blockedStatDao;
 
     private final MutableLiveData<Boolean> pending;
     private final MediatorLiveData<String> state;
@@ -75,6 +79,7 @@ public class HomeViewModel extends AndroidViewModel {
         AppDatabase database = AppDatabase.getInstance(application);
         this.hostsSourceDao = database.hostsSourceDao();
         this.hostListItemDao = database.hostsListItemDao();
+        this.blockedStatDao = database.blockedStatDao();
 
         this.pending = new MutableLiveData<>(false);
         this.state = new MediatorLiveData<>();
@@ -139,6 +144,15 @@ public class HomeViewModel extends AndroidViewModel {
     }
 
     /**
+     * Get the ad blocking state.
+     *
+     * @return The ad blocking state.
+     */
+    public LiveData<AdBlockState> getAdBlockState() {
+        return this.adBlockModel.getBlockingState();
+    }
+
+    /**
      * Get whether a network is available.
      *
      * @return {@code true} if a network is available, {@code false} otherwise.
@@ -165,6 +179,34 @@ public class HomeViewModel extends AndroidViewModel {
 
     public LiveData<Integer> getBlockedHostCount() {
         return this.hostListItemDao.getBlockedHostCount();
+    }
+
+    /**
+     * Get the number of distinct domains blocked today.
+     *
+     * @return The number of distinct domains blocked today.
+     */
+    public LiveData<Integer> getBlockedTodayCount() {
+        return this.blockedStatDao.getDayCount(LocalDate.now().toString());
+    }
+
+    /**
+     * Get the number of distinct domains blocked during the current month.
+     *
+     * @return The number of distinct domains blocked during the current month.
+     */
+    public LiveData<Integer> getBlockedMonthCount() {
+        LocalDate today = LocalDate.now();
+        return this.blockedStatDao.getCountBetween(today.withDayOfMonth(1).toString(), today.toString());
+    }
+
+    /**
+     * Get the total number of distinct domains blocked.
+     *
+     * @return The total number of distinct domains blocked.
+     */
+    public LiveData<Integer> getBlockedTotalCount() {
+        return this.blockedStatDao.getTotalCount();
     }
 
     public LiveData<Integer> getAllowedHostCount() {
@@ -215,6 +257,13 @@ public class HomeViewModel extends AndroidViewModel {
 
     public void checkForAppUpdate() {
         EXECUTORS.networkIO().execute(this.updateModel::checkForUpdate);
+    }
+
+    /**
+     * Reconcile the ad blocking state with the current system state.
+     */
+    public void reconcileAdBlocking() {
+        EXECUTORS.diskIO().execute(this.adBlockModel::reconcile);
     }
 
     public void toggleAdBlocking() {

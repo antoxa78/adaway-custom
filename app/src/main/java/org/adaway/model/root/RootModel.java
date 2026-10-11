@@ -34,6 +34,7 @@ import org.adaway.db.entity.HostsSource;
 import org.adaway.helper.PreferenceHelper;
 import org.adaway.model.adblocking.AdBlockMethod;
 import org.adaway.model.adblocking.AdBlockModel;
+import org.adaway.model.adblocking.AdBlockState;
 import org.adaway.model.error.HostErrorException;
 import org.adaway.util.AppExecutors;
 import org.adaway.util.WebServerUtils;
@@ -94,7 +95,7 @@ public class RootModel extends AdBlockModel {
         copyNewHostsFile();
         setState(R.string.status_check_copy);
         setState(R.string.status_hosts_updated);
-        this.applied.postValue(true);
+        setBlockingState(AdBlockState.RUNNING);
     }
 
     /**
@@ -110,7 +111,7 @@ public class RootModel extends AdBlockModel {
             // Revert hosts file
             revertHostFile();
             setState(R.string.status_revert_done);
-            this.applied.postValue(false);
+            setBlockingState(AdBlockState.STOPPED);
         } catch (IOException exception) {
             throw new HostErrorException(REVERT_FAIL, exception);
         }
@@ -150,7 +151,7 @@ public class RootModel extends AdBlockModel {
             applied = mergeAllLines(result.getOut()).startsWith(HEADER1);
         }
 
-        this.applied.postValue(applied);
+        setBlockingState(applied ? AdBlockState.RUNNING : AdBlockState.STOPPED);
     }
 
     private void syncPreferences(Context context) {

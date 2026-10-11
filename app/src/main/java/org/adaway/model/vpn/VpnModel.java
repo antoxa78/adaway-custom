@@ -13,18 +13,25 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import org.adaway.R;
 import org.adaway.db.AppDatabase;
+import org.adaway.db.dao.BlockedStatDao;
 import org.adaway.db.dao.HostEntryDao;
 import org.adaway.db.entity.HostEntry;
 import org.adaway.model.adblocking.AdBlockMethod;
 import org.adaway.model.adblocking.AdBlockModel;
+import org.adaway.model.adblocking.AdBlockState;
 import org.adaway.model.error.HostErrorException;
+import org.adaway.util.AppExecutors;
 import org.adaway.vpn.VpnService;
 import org.adaway.vpn.VpnServiceControls;
 import org.adaway.vpn.VpnStatus;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import timber.log.Timber;
 
@@ -35,11 +42,20 @@ import timber.log.Timber;
  */
 public class VpnModel extends AdBlockModel {
     private final HostEntryDao hostEntryDao;
+    private final BlockedStatDao blockedStatDao;
     private final LruCache<String, HostEntry> blockCache;
     private final LinkedHashSet<String> logs;
     private final BroadcastReceiver vpnStatusReceiver;
+    /**
+     * The domains already counted today (guarded by itself).
+     */
+    private final Set<String> blockedDomains;
     private boolean recordingLogs;
     private int requestCount;
+    /**
+     * The day {@link #blockedDomains} refers to ({@code null} if not initialized).
+     */
+    private String blockedDomainsDay;
 
     /**
      * Constructor.
@@ -50,6 +66,9 @@ public class VpnModel extends AdBlockModel {
         super(context);
         AppDatabase database = AppDatabase.getInstance(context);
         this.hostEntryDao = database.hostEntryDao();
+        this.blockedStatDao = database.blockedStatDao();
+        this.blockedDomains = new HashSet<>();
+        this.blockedDomainsDay = null;
         this.blockCache = new LruCache<String, HostEntry>(4 * 1024) {
             @Override
             protected HostEntry create(String key) {
@@ -59,8 +78,8 @@ public class VpnModel extends AdBlockModel {
         this.logs = new LinkedHashSet<>();
         this.recordingLogs = false;
         this.requestCount = 0;
-        this.applied.postValue(VpnServiceControls.isRunning(context));
-        // Register VPN status receiver to update the applied status according to the VPN service status
+        setBlockingState(VpnServiceControls.isRunning(context) ? AdBlockState.RUNNING : AdBlockState.STOPPED);
+        // Register VPN status receiver to update the blocking state according to the VPN service status
         this.vpnStatusReceiver = createVpnStatusReceiver();
         LocalBroadcastManager.getInstance(context).registerReceiver(
                 this.vpnStatusReceiver,
@@ -75,9 +94,33 @@ public class VpnModel extends AdBlockModel {
                 int statusCode = intent.getIntExtra(VpnService.VPN_UPDATE_STATUS_EXTRA, VpnStatus.STOPPED.toCode());
                 VpnStatus vpnStatus = VpnStatus.fromCode(statusCode);
                 Timber.d("VPN status update: %s.", vpnStatus);
-                VpnModel.this.applied.postValue(vpnStatus.isStarted());
+                VpnModel.this.setBlockingState(toAdBlockState(vpnStatus));
             }
         };
+    }
+
+    /**
+     * Convert a VPN status to the corresponding ad blocking state.
+     *
+     * @param status The VPN status to convert.
+     * @return The corresponding ad blocking state.
+     */
+    private static AdBlockState toAdBlockState(VpnStatus status) {
+        switch (status) {
+            case STARTING:
+                return AdBlockState.STARTING;
+            case RUNNING:
+                return AdBlockState.RUNNING;
+            case WAITING_FOR_NETWORK:
+                return AdBlockState.WAITING_FOR_NETWORK;
+            case RECONNECTING:
+            case RECONNECTING_NETWORK_ERROR:
+                return AdBlockState.RECONNECTING;
+            case STOPPING:
+            case STOPPED:
+            default:
+                return AdBlockState.STOPPED;
+        }
     }
 
     @Override
@@ -90,10 +133,16 @@ public class VpnModel extends AdBlockModel {
         // Clear cache
         this.blockCache.evictAll();
         // Start VPN
+        boolean wasRunning = VpnServiceControls.isRunning(this.context);
         boolean started = VpnServiceControls.start(this.context);
-        this.applied.postValue(started);
         if (!started) {
+            setBlockingState(AdBlockState.STOPPED);
             throw new HostErrorException(ENABLE_VPN_FAIL);
+        }
+        // Only report the starting state when the service was not already running: a start
+        // command sent to a running service keeps its current status (waiting, reconnecting…).
+        if (!wasRunning) {
+            setBlockingState(AdBlockState.STARTING);
         }
         setState(R.string.status_vpn_configuration_updated);
     }
@@ -101,7 +150,18 @@ public class VpnModel extends AdBlockModel {
     @Override
     public void revert() {
         VpnServiceControls.stop(this.context);
-        this.applied.postValue(false);
+        setBlockingState(AdBlockState.STOPPED);
+    }
+
+    @Override
+    public void reconcile() {
+        // The blocking state is normally pushed by VPN status broadcasts. If the service is
+        // destroyed without emitting a STOPPED status (e.g. killed by the system), the last
+        // value would stay active and the UI would keep displaying "running" with no tunnel.
+        // Recompute it from the current service state to avoid such a stale display.
+        if (!VpnServiceControls.isRunning(this.context)) {
+            setBlockingState(AdBlockState.STOPPED);
+        }
     }
 
     @Override
@@ -122,6 +182,34 @@ public class VpnModel extends AdBlockModel {
     @Override
     public void clearLogs() {
         this.logs.clear();
+    }
+
+    /**
+     * Record a blocked domain for the statistics.
+     * <p>
+     * Domains are deduplicated in memory for the current day, so the database is only written the
+     * first time a domain is blocked during the day. The database ledger is persistent, which
+     * makes the distinct count correct even across application restarts.
+     *
+     * @param hostname The blocked domain.
+     */
+    public void recordBlocked(String hostname) {
+        String day = LocalDate.now().toString();
+        String domain = hostname.toLowerCase(Locale.ENGLISH);
+        synchronized (this.blockedDomains) {
+            if (!day.equals(this.blockedDomainsDay)) {
+                // Day changed: start a new in-memory ledger and prune the previous days
+                this.blockedDomains.clear();
+                this.blockedDomainsDay = day;
+                AppExecutors.getInstance().diskIO().execute(() -> this.blockedStatDao.pruneDomainsBefore(day));
+            }
+            if (!this.blockedDomains.add(domain)) {
+                // Already counted today
+                return;
+            }
+        }
+        // Persist outside of the DNS worker thread, once per distinct domain and not per query
+        AppExecutors.getInstance().diskIO().execute(() -> this.blockedStatDao.recordBlocked(day, domain));
     }
 
     /**
