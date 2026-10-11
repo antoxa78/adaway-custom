@@ -1,5 +1,37 @@
 # Changelog
 
+## [6.3.5] - 2026-10-11
+
+- Fix the root cause of "ad blocking is running" without any tunnel: the system starting the VPN service (always-on VPN, restart after a kill) sends no command, and that start was rejected as unknown, so the tunnel was never established while the application still considered the service healthy and never retried
+- Self-heal the tunnel from the application (on resume, from the periodic heartbeat and on time/locale broadcasts) using a real tunnel-liveness signal instead of the service object, so a service left alive without a tunnel is rebuilt too
+- Broadcast a stopped status when the VPN service is destroyed, so the home screen does not keep displaying the last state
+- Show the real ad blocking state in the home header: starting, waiting for network and reconnecting, with the waiting state taking precedence without a network
+- Guard foreground service starts against background start restrictions
+- Add blocked domains statistics: distinct domains blocked per day, persisted with a per-day deduplication ledger and shown as today / this month / all time
+
+## [6.3.4] - 2026-10-09
+
+- Recommended-lists catalog: 7 more EasyList regional lists (Spanish, Polish, Portuguese, Russian (RU AdList), Korean, Indian and Nordic)
+- Host sources: remove a source with one tap, with the built-in User list protected from removal
+
+## [6.3.3] - 2026-10-09
+
+- Home screen refresh: centered header, single three-column stats card (blocked/allowed/redirected), matching status banners, sources footer row separated by a divider, crisper source icon and a black-and-white start/stop button
+
+## [6.3.2] - 2026-10-08
+
+- Fix the intermittent "no internet" while ad blocking is running: the DNS mapper could pick the DNS server of an IMS-only network without internet access while the change detector only looked at networks with internet access, so the two never agreed and the tunnel was rebuilt every 10 seconds
+- Never use networks without internet access to pick the VPN DNS servers, share a single DNS selection routine between the VPN configuration and the change detection, and update the DNS mapping in place when the underlying network DNS changes
+- Supersedes 6.3.1
+
+## [6.3.1] - 2026-10-08
+
+- Fix "no internet" after switching networks: re-map the VPN DNS servers when the active network changes
+- Detect real network availability on the home screen and warn with a "No network connection" banner instead of a blocking dialog
+- No more false "stopped" flash at startup, and a status bar icon color that adapts to the colored header
+- Only prompt for the startup permission with the VPN method
+- Thread-safe DNS mapping shared with the connection monitor, guarded network-callback registration, explicit export flag on the update receiver
+
 ## [6.2.5] - 2026-10-02
 
 - Stop the VPN from restarting when a non-carrier network flaps (dual-band Wi-Fi links, cellular blips)
