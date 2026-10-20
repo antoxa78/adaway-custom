@@ -121,13 +121,25 @@ public class VpnConnectionMonitor {
                             monitoredInterface.getName());
                     // Use restart, not start: the service is still running, only its tunnel is dead
                     VpnServiceControls.restart(this.context);
+                    return;
                 }
                 // Re-map DNS servers when the underlying network changed them: forwarding DNS to a
                 // stale (unreachable) server silently times out and makes the device look offline.
-                // The mapping is updated in place to avoid interrupting DNS with a tunnel restart.
                 DnsServerMapper dnsMapper = this.dnsServerMapper;
-                if (dnsMapper != null && dnsMapper.remapDnsServers(this.context)) {
-                    Timber.i("Network DNS servers changed, DNS mapping updated in place.");
+                if (dnsMapper != null) {
+                    DnsServerMapper.DnsUpdate update = dnsMapper.remapDnsServers(this.context);
+                    if (update == DnsServerMapper.DnsUpdate.RESTART_REQUIRED) {
+                        // The tunnel was established while the network had no DNS server, so its
+                        // fake DNS addresses and routes are not registered. Rebuild it now that DNS
+                        // servers are available.
+                        Timber.i("DNS servers are now available. Restarting VPN service to use them…");
+                        if (VpnServiceControls.restart(this.context)) {
+                            return;
+                        }
+                        Timber.w("Failed to restart VPN service to use the new DNS servers, will retry.");
+                    } else if (update == DnsServerMapper.DnsUpdate.REMAPPED) {
+                        Timber.i("Network DNS servers changed, DNS mapping updated in place.");
+                    }
                 }
                 try {
                     Thread.sleep(CONNECTION_CHECK_DELAY_MS);

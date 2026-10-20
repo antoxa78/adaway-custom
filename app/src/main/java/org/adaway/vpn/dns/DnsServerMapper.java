@@ -55,6 +55,26 @@ public class DnsServerMapper {
      * VPN network IPv6 interface prefix length.
      */
     private static final int IPV6_PREFIX_LENGTH = 120;
+
+    /**
+     * Result of a DNS server mapping update.
+     */
+    public enum DnsUpdate {
+        /**
+         * No DNS server is available or the mapping did not change.
+         */
+        UNCHANGED,
+        /**
+         * The mapping was updated in place.
+         */
+        REMAPPED,
+        /**
+         * The VPN was configured without any DNS server: it must be rebuilt to register the new
+         * fake DNS addresses and routes with the system.
+         */
+        RESTART_REQUIRED
+    }
+
     /**
      * The original DNS servers.
      */
@@ -196,16 +216,25 @@ public class DnsServerMapper {
      * The fake DNS addresses registered to the system are kept, only the original servers they
      * forward to are updated. It avoids restarting the tunnel (and interrupting DNS) when the
      * underlying network DNS servers change.
+     * <p>
+     * When the VPN was established without any DNS server (for example because the underlying
+     * network did not provide one yet), the fake DNS addresses and their routes are missing from
+     * the system: the mapping cannot be updated in place and the tunnel must be rebuilt to
+     * register them. {@link DnsUpdate#RESTART_REQUIRED} is returned in this case.
      *
      * @param context The application context.
-     * @return {@code true} if the mapping changed, {@code false} otherwise.
+     * @return The result of the mapping update.
      */
-    public boolean remapDnsServers(Context context) {
+    public DnsUpdate remapDnsServers(Context context) {
         List<InetAddress> newDnsServers = getMappedDnsServers(context);
+        if (newDnsServers.isEmpty()) {
+            return DnsUpdate.UNCHANGED;
+        }
         int mappedCount = this.dnsServers.size();
-        // Nothing to update if there is no network or the VPN is not configured yet
-        if (newDnsServers.isEmpty() || mappedCount == 0) {
-            return false;
+        // The tunnel was configured without any DNS server: its fake DNS addresses and routes are
+        // not registered with the system, so only a tunnel rebuild can add them.
+        if (mappedCount == 0) {
+            return DnsUpdate.RESTART_REQUIRED;
         }
         // Keep the same number of entries as the fake DNS addresses registered to the system
         List<InetAddress> remappedDnsServers = new ArrayList<>(mappedCount);
@@ -214,11 +243,11 @@ public class DnsServerMapper {
             remappedDnsServers.add(newDnsServers.get(serverIndex));
         }
         if (new HashSet<>(remappedDnsServers).equals(new HashSet<>(this.dnsServers))) {
-            return false;
+            return DnsUpdate.UNCHANGED;
         }
         this.dnsServers.clear();
         this.dnsServers.addAll(remappedDnsServers);
-        return true;
+        return DnsUpdate.REMAPPED;
     }
 
     /**
@@ -399,11 +428,22 @@ public class DnsServerMapper {
     }
 
 
+    /**
+     * Check whether IPv6 DNS servers should be mapped into the VPN.
+     * <p>
+     * IPv6 servers are mapped when IPv6 support is enabled. They are also mapped when the network
+     * only provides IPv6 DNS servers, otherwise the VPN would be left without any DNS server.
+     *
+     * @param context    The application context.
+     * @param dnsServers The DNS servers of the underlying network.
+     * @return {@code true} if IPv6 DNS servers should be mapped, {@code false} otherwise.
+     */
     private boolean hasIpV6DnsServers(Context context, Collection<InetAddress> dnsServers) {
         boolean hasIpv6Server = dnsServers.stream()
                 .anyMatch(server -> server instanceof Inet6Address);
-        boolean hasOnlyOnServer = dnsServers.size() == 1;
+        boolean hasIpv4Server = dnsServers.stream()
+                .anyMatch(server -> server instanceof Inet4Address);
         boolean isIpv6Enabled = PreferenceHelper.getEnableIpv6(context);
-        return (isIpv6Enabled || hasOnlyOnServer) && hasIpv6Server;
+        return (isIpv6Enabled || !hasIpv4Server) && hasIpv6Server;
     }
 }

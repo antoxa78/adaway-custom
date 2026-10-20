@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.3.6] - 2026-10-20
+
+- Rebuild the VPN tunnel when DNS servers become available after the tunnel was established without any, instead of leaving DNS broken until a manual restart
+- Use the network IPv6 DNS servers on IPv6-only networks even when IPv6 support is disabled, so the VPN is never left without any DNS server
+- Avoid a duplicate tunnel restart when the VPN interface is detected down
+
 ## [6.3.5] - 2026-10-11
 
 - Fix the root cause of "ad blocking is running" without any tunnel: the system starting the VPN service (always-on VPN, restart after a kill) sends no command, and that start was rejected as unknown, so the tunnel was never established while the application still considered the service healthy and never retried
