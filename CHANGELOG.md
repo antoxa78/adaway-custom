@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.3.7] - 2026-10-26
+
+- Fix the VPN restart loop which could leave ad blocking "running" without any tunnel: a system always-on start no longer tears down a healthy tunnel
+- Make VPN worker restarts generation-aware so a stale monitor or worker cannot close a newer tunnel
+- Reconnect the tunnel from the worker when it is closed instead of leaving the service alive without any tunnel
+- Stop the VPN worker and close its tunnel when the VPN service is destroyed
+
 ## [6.3.6] - 2026-10-20
 
 - Rebuild the VPN tunnel when DNS servers become available after the tunnel was established without any, instead of leaving DNS broken until a manual restart

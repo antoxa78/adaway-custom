@@ -83,7 +83,7 @@ public class DnsServerMapper {
      * The fake address of the last IPv4 DNS server, routed into the tunnel
      * (<code>null</code> if there is no IPv4 DNS server).
      */
-    private InetAddress defaultDnsServerAlias;
+    private volatile InetAddress defaultDnsServerAlias;
 
     /**
      * Constructor.
@@ -103,7 +103,7 @@ public class DnsServerMapper {
      * @param context The application context.
      * @param builder The builder of the VPN to configure.
      */
-    public void configureVpn(Context context, VpnService.Builder builder) {
+    public synchronized void configureVpn(Context context, VpnService.Builder builder) {
         dumpNetworkInfo((ConnectivityManager) context.getSystemService(CONNECTIVITY_SERVICE));
         // Get the DNS servers to map (IPv4 servers always, IPv6 servers only when usable)
         List<InetAddress> dnsServers = getMappedDnsServers(context);
@@ -225,7 +225,7 @@ public class DnsServerMapper {
      * @param context The application context.
      * @return The result of the mapping update.
      */
-    public DnsUpdate remapDnsServers(Context context) {
+    public synchronized DnsUpdate remapDnsServers(Context context) {
         List<InetAddress> newDnsServers = getMappedDnsServers(context);
         if (newDnsServers.isEmpty()) {
             return DnsUpdate.UNCHANGED;

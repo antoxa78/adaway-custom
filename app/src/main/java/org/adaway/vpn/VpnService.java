@@ -91,6 +91,18 @@ import timber.log.Timber;
 public class VpnService extends android.net.VpnService implements Handler.Callback {
     public static final String VPN_UPDATE_STATUS_INTENT = "org.jak_linux.dns66.VPN_UPDATE_STATUS";
     public static final String VPN_UPDATE_STATUS_EXTRA = "VPN_STATUS";
+    /**
+     * Intent extra carrying the worker generation observed by the caller of a restart.
+     */
+    static final String EXTRA_EXPECTED_GENERATION = "org.adaway.extra.EXPECTED_GENERATION";
+    /**
+     * Intent extra carrying the tunnel identifier observed by the caller of a restart.
+     */
+    static final String EXTRA_EXPECTED_TUNNEL_ID = "org.adaway.extra.EXPECTED_TUNNEL_ID";
+    /**
+     * Sentinel value used when a restart request does not need to check the tunnel identity.
+     */
+    public static final long NO_TUNNEL_EXPECTATION = Long.MIN_VALUE;
     /*
      * Notification intent related.
      */
@@ -141,16 +153,27 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         Command command = intent == null ?
                 START :
                 Command.readFromIntent(intent);
+        int expectedGeneration = intent == null ?
+                -1 :
+                intent.getIntExtra(EXTRA_EXPECTED_GENERATION, -1);
+        long expectedTunnelId = intent == null ?
+                NO_TUNNEL_EXPECTATION :
+                intent.getLongExtra(EXTRA_EXPECTED_TUNNEL_ID, NO_TUNNEL_EXPECTATION);
         // The system can also start the service with a non-null intent without any command (for
         // example when the always-on VPN is (re)started): start ad blocking when it is expected
         // to run, otherwise the service would stay up without any tunnel.
         if (command == UNKNOWN && PreferenceHelper.getVpnServiceStatus(this).isStarted()) {
-            Timber.i("System started the VPN service, starting ad blocking.");
-            command = START;
+            Timber.i("System started the VPN service, ensuring ad blocking is running.");
+            // A system start must not tear down a healthy tunnel. Only start when no tunnel exists
+            // and no worker is already starting.
+            startVpn(-1, NO_TUNNEL_EXPECTATION, false);
+            return START_STICKY;
         }
         switch (command) {
             case START:
-                startVpn();
+                // A null intent is a system restart (START_STICKY): never tear down a tunnel that
+                // is still healthy. An explicit START is a user or monitor request to rebuild it.
+                startVpn(expectedGeneration, expectedTunnelId, intent != null);
                 return START_STICKY;
             case STOP:
                 stopVpn();
@@ -164,6 +187,8 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
     @Override
     public void onDestroy() {
         Timber.d("Destroying VPN service…");
+        // Stop the worker and close the tunnel with the service.
+        this.vpnWorker.stop();
         unregisterNetworkCallback();
         // The service (and with it the tunnel) is gone: notify the UI so it does not keep
         // displaying the last non-terminal status (typically RUNNING) while no tunnel exists.
@@ -183,7 +208,7 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         Intent prepareIntent = VpnService.prepare(this);
         if (prepareIntent == null) {
             Timber.i("Restarting revoked VPN service…");
-            startVpn();
+            startVpn(-1, NO_TUNNEL_EXPECTATION, true);
         } else {
             Timber.w("VPN preparation revoked, waiting for user to re-authorize.");
             // Fully stop the service (status, foreground notification and service itself),
@@ -214,14 +239,16 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         this.handler.sendMessage(statusMessage);
     }
 
-    private void startVpn() {
+    private void startVpn(int expectedGeneration, long expectedTunnelId, boolean force) {
+        if (!this.vpnWorker.startIfNeeded(expectedGeneration, expectedTunnelId, force)) {
+            Timber.d("VPN start request ignored.");
+            return;
+        }
         Timber.d("Starting VPN service…");
         PreferenceHelper.setVpnServiceStatus(this, RUNNING);
+        // Publish STARTING synchronously to satisfy the foreground service deadline. The worker
+        // publishes RUNNING through the same handler afterwards, so the order is preserved.
         updateVpnStatus(STARTING);
-        // Stop any previous worker first: a start command may be sent to an already running
-        // service to rebuild a broken tunnel (see VpnServiceControls.restart()).
-        this.vpnWorker.stop();
-        this.vpnWorker.start();
         Timber.i("VPN service started.");
     }
 
@@ -244,8 +271,7 @@ public class VpnService extends android.net.VpnService implements Handler.Callba
         updateVpnStatus(RECONNECTING);
         // Stop the previous worker before starting a new one so two tunnels do not fight
         // over the VPN interface when the network changes.
-        this.vpnWorker.stop();
-        this.vpnWorker.start();
+        this.vpnWorker.startIfNeeded(-1, NO_TUNNEL_EXPECTATION, true);
     }
 
     private void updateVpnStatus(VpnStatus status) {

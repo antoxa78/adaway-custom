@@ -5,13 +5,11 @@ import static java.util.Objects.requireNonNull;
 
 import android.content.Context;
 
-import org.adaway.vpn.VpnServiceControls;
 import org.adaway.vpn.dns.DnsServerMapper;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,32 +28,23 @@ public class VpnConnectionMonitor {
      */
     private final Context context;
     /**
-     * Whether the monitor is running (<code>true</code> if running, <code>false</code> if stopped).
+     * The worker owning the tunnel. The monitor only ever acts on the tunnel it observed, so a
+     * stale monitor cannot tear down a tunnel established by a newer generation.
      */
-    private final AtomicBoolean running;
-    /**
-     * The network interface to monitor (<code>null</code> if not initialized).<br>
-     * It is set by the worker thread and read by the monitor thread.
-     */
-    private volatile NetworkInterface networkInterface;
-    /**
-     * The DNS server mapper to detect network DNS changes (<code>null</code> if not initialized).
-     */
-    private volatile DnsServerMapper dnsServerMapper;
+    private final VpnWorker worker;
 
     /**
      * Constructor.
      *
      * @param context The application context.
+     * @param worker  The VPN worker.
      */
-    VpnConnectionMonitor(Context context) {
+    VpnConnectionMonitor(Context context, VpnWorker worker) {
         this.context = context;
-        this.running = new AtomicBoolean(true);
-        this.networkInterface = null;
-        this.dnsServerMapper = null;
+        this.worker = worker;
     }
 
-    private static NetworkInterface findVpnNetworkInterface() {
+    static NetworkInterface findVpnNetworkInterface() {
         try {
             NetworkInterface vpnNetworkInterface = null;
             Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
@@ -64,11 +53,12 @@ public class VpnConnectionMonitor {
                 vpnNetworkInterface = pickLastVpnNetworkInterface(vpnNetworkInterface, networkInterface);
             }
             if (vpnNetworkInterface == null) {
-                throw new IllegalStateException("Failed to find a network interface.");
+                Timber.w("Failed to find a VPN network interface.");
             }
             return vpnNetworkInterface;
         } catch (SocketException e) {
-            throw new IllegalStateException("Failed to find VPN network interface.", e);
+            Timber.w(e, "Failed to find VPN network interface.");
+            return null;
         }
     }
 
@@ -95,37 +85,39 @@ public class VpnConnectionMonitor {
     }
 
     /**
-     * Initialize the monitor once the VPN connection is up.
-     *
-     * @param dnsServerMapper The DNS server mapper used to detect network DNS changes.
-     */
-    void initialize(DnsServerMapper dnsServerMapper) {
-        Timber.d("Initializing connection monitor…");
-        this.networkInterface = findVpnNetworkInterface();
-        this.dnsServerMapper = dnsServerMapper;
-        Timber.d("Connection monitor initialized to watch interface %s.", this.networkInterface.getName());
-    }
-
-    /**
      * Monitor the VPN network interface is still up while the VPN is running.
+     *
+     * @param generation The generation this monitor belongs to.
      */
-    void monitor() {
-        // The same monitor instance is reused each time the worker starts: re-arm it
-        this.running.set(true);
-        try {
-            while (this.running.get()) {
-                NetworkInterface monitoredInterface = this.networkInterface;
-                if (monitoredInterface != null && !monitoredInterface.isUp()) {
-                    stop();
-                    Timber.i("VPN network interface %s is down. Restarting VPN service…",
-                            monitoredInterface.getName());
-                    // Use restart, not start: the service is still running, only its tunnel is dead
-                    VpnServiceControls.restart(this.context);
-                    return;
+    void monitor(int generation) {
+        while (this.worker.isGeneration(generation)) {
+            VpnWorker.Tunnel tunnel = this.worker.getTunnel();
+            if (tunnel != null && tunnel.generation == generation) {
+                NetworkInterface networkInterface = tunnel.networkInterface;
+                if (networkInterface == null) {
+                    // The interface may not have been visible when the tunnel was registered.
+                    networkInterface = findVpnNetworkInterface();
+                }
+                if (networkInterface != null) {
+                    try {
+                        if (!networkInterface.isUp()) {
+                            Timber.i("VPN network interface %s is down. Restarting VPN service…",
+                                    networkInterface.getName());
+                            if (this.worker.requestRestart(generation, tunnel.id)) {
+                                return;
+                            }
+                        }
+                    } catch (SocketException e) {
+                        Timber.w(e, "Failed to test VPN network interface %s. Restarting VPN service…",
+                                networkInterface.getName());
+                        if (this.worker.requestRestart(generation, tunnel.id)) {
+                            return;
+                        }
+                    }
                 }
                 // Re-map DNS servers when the underlying network changed them: forwarding DNS to a
                 // stale (unreachable) server silently times out and makes the device look offline.
-                DnsServerMapper dnsMapper = this.dnsServerMapper;
+                DnsServerMapper dnsMapper = tunnel.dnsServerMapper;
                 if (dnsMapper != null) {
                     DnsServerMapper.DnsUpdate update = dnsMapper.remapDnsServers(this.context);
                     if (update == DnsServerMapper.DnsUpdate.RESTART_REQUIRED) {
@@ -133,7 +125,7 @@ public class VpnConnectionMonitor {
                         // fake DNS addresses and routes are not registered. Rebuild it now that DNS
                         // servers are available.
                         Timber.i("DNS servers are now available. Restarting VPN service to use them…");
-                        if (VpnServiceControls.restart(this.context)) {
+                        if (this.worker.requestRestart(generation, tunnel.id)) {
                             return;
                         }
                         Timber.w("Failed to restart VPN service to use the new DNS servers, will retry.");
@@ -141,35 +133,14 @@ public class VpnConnectionMonitor {
                         Timber.i("Network DNS servers changed, DNS mapping updated in place.");
                     }
                 }
-                try {
-                    Thread.sleep(CONNECTION_CHECK_DELAY_MS);
-                } catch (InterruptedException e) {
-                    Timber.d("Stop monitoring.");
-                    Thread.currentThread().interrupt();
-                    break;
-                }
             }
-        } catch (SocketException e) {
-            NetworkInterface monitoredInterface = this.networkInterface;
-            Timber.w(e, "Failed to test VPN network interface %s. Restarting VPN service…",
-                    monitoredInterface == null ? "unset" : monitoredInterface.getName());
-            reset();
-            VpnServiceControls.restart(this.context);
+            try {
+                Thread.sleep(CONNECTION_CHECK_DELAY_MS);
+            } catch (InterruptedException e) {
+                Timber.d("Stop monitoring.");
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
-    }
-
-    /**
-     * Reset the connection monitor if the VPN connection changed.
-     */
-    void reset() {
-        this.networkInterface = null;
-        this.dnsServerMapper = null;
-    }
-
-    /**
-     * Stop the monitor.
-     */
-    void stop() {
-        this.running.set(false);
     }
 }

@@ -77,7 +77,12 @@ public final class VpnServiceControls {
     public static boolean start(Context context) {
         // Check if VPN is already running
         if (isRunning(context)) {
-            return true;
+            if (isTunnelEstablished() || VpnWorker.isVpnStarting()) {
+                return true;
+            }
+            // The service is alive but its tunnel is gone: rebuild it, without racing a tunnel
+            // which may have been established after this check.
+            return restart(context, VpnWorker.getCurrentGeneration(), VpnWorker.getCurrentTunnelId());
         }
         // Start the VPN service
         Intent intent = new Intent(context, VpnService.class);
@@ -108,8 +113,27 @@ public final class VpnServiceControls {
      * @return {@code true} if the restart command was sent, {@code false} otherwise.
      */
     public static boolean restart(Context context) {
+        return restart(context, -1, VpnService.NO_TUNNEL_EXPECTATION);
+    }
+
+    /**
+     * Restart the VPN tunnel if the observed generation and tunnel are still current.
+     *
+     * @param context            The application context.
+     * @param expectedGeneration The generation observed by the caller, or {@code -1} for no check.
+     * @param expectedTunnelId   The tunnel observed by the caller, {@code 0} for no tunnel, or
+     *                           {@link VpnService#NO_TUNNEL_EXPECTATION} for no check.
+     * @return {@code true} if the restart command was sent, {@code false} otherwise.
+     */
+    public static boolean restart(Context context, int expectedGeneration, long expectedTunnelId) {
         Intent intent = new Intent(context, VpnService.class);
         START.appendToIntent(intent);
+        if (expectedGeneration >= 0) {
+            intent.putExtra(VpnService.EXTRA_EXPECTED_GENERATION, expectedGeneration);
+        }
+        if (expectedTunnelId != VpnService.NO_TUNNEL_EXPECTATION) {
+            intent.putExtra(VpnService.EXTRA_EXPECTED_TUNNEL_ID, expectedTunnelId);
+        }
         boolean started;
         try {
             started = context.startForegroundService(intent) != null;
@@ -139,13 +163,23 @@ public final class VpnServiceControls {
         if (!isStarted(context) || isTunnelEstablished()) {
             return false;
         }
+        // A worker may be establishing or retrying its tunnel: do not tear it down.
+        if (VpnWorker.isVpnStarting()) {
+            return false;
+        }
         // When the service is still alive, only rebuild the tunnel if an underlying network is
         // available: otherwise the service is legitimately waiting for one and would rebuild a
         // tunnel it cannot use (see VpnStatus.WAITING_FOR_NETWORK).
-        if (isVpnServiceRunning(context) && !isUnderlyingNetworkAvailable(context)) {
-            return false;
+        if (isVpnServiceRunning(context)) {
+            if (!isUnderlyingNetworkAvailable(context)) {
+                return false;
+            }
+            // Pass the observed generation and tunnel so a start which races with a newly
+            // established tunnel is ignored by the service.
+            Timber.i("VPN tunnel is not established, restarting VPN service…");
+            return restart(context, VpnWorker.getCurrentGeneration(), VpnWorker.getCurrentTunnelId());
         }
-        Timber.i("VPN tunnel is not established, restarting VPN service…");
+        Timber.i("VPN tunnel is not established, starting VPN service…");
         return restart(context);
     }
 

@@ -31,6 +31,14 @@ class VpnConnectionThrottler {
     }
 
     /**
+     * Reset the throttler for a new worker generation.
+     */
+    void reset() {
+        this.time = 0;
+        this.timeout = INITIAL_TIMEOUT_MS;
+    }
+
+    /**
      * Limit the VPN connection to be established to often.
      *
      * @throws InterruptedException If the throttler cannot wait to delay the VPN connection.
